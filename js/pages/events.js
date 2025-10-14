@@ -124,9 +124,6 @@ async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
                 </label>
             `).join('');
         }
-
-        // Validate button state after loading ropers
-        setTimeout(() => validateCreateEventButton(), 50);
     } catch (error) {
         console.error('Error loading ropers for selection:', error);
     }
