@@ -37,9 +37,6 @@ async function loadEventsPage() {
 
         // Set default date to today
         document.getElementById('event-date').value = app.getTodayDate();
-
-        // Set up validation for create event button
-        validateCreateEventButton();
     } catch (error) {
         console.error('Error loading events page:', error);
         app.showNotification('Error loading page', 'error');
@@ -573,21 +570,7 @@ document.getElementById('event-heelers-search').addEventListener('input', (e) =>
 });
 
 // Set up validation for event name and date inputs
-document.getElementById('event-name').addEventListener('input', validateCreateEventButton);
-document.getElementById('event-date').addEventListener('change', validateCreateEventButton);
-
-// Set up validation when checkboxes change (use event delegation on the containers)
-document.getElementById('event-headers-selection').addEventListener('change', (e) => {
-    if (e.target.type === 'checkbox' && e.target.name === 'event-roper') {
-        validateCreateEventButton();
-    }
-});
-
-document.getElementById('event-heelers-selection').addEventListener('change', (e) => {
-    if (e.target.type === 'checkbox' && e.target.name === 'event-roper') {
-        validateCreateEventButton();
-    }
-});
+// Event listeners for form inputs (validation removed)
 
 // Export functions to global scope
 /**
@@ -604,42 +587,8 @@ function toggleSelectAll(position) {
     checkboxes.forEach(cb => {
         cb.checked = selectAllCheckbox.checked;
     });
-
-    // Validate the create event button after toggling
-    validateCreateEventButton();
 }
 
-/**
- * Validate the create event button state
- * Disables button unless event name, date, and at least 1 header + 1 heeler are selected
- */
-function validateCreateEventButton() {
-    const submitButton = document.querySelector('#create-event-form button[type="submit"]');
-    const eventName = document.getElementById('event-name').value.trim();
-    const eventDate = document.getElementById('event-date').value;
-
-    // Get selected ropers
-    const selectedCheckboxes = document.querySelectorAll('input[name="event-roper"]:checked');
-    const selectedRoperIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
-
-    // Check if we have at least one header and one heeler
-    const hasHeader = Array.from(selectedCheckboxes).some(cb => cb.dataset.position === 'header');
-    const hasHeeler = Array.from(selectedCheckboxes).some(cb => cb.dataset.position === 'heeler');
-
-    // Enable button only if all conditions are met
-    const isValid = eventName && eventDate && hasHeader && hasHeeler;
-
-    if (submitButton) {
-        submitButton.disabled = !isValid;
-        if (isValid) {
-            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            submitButton.classList.add('hover:bg-green-700');
-        } else {
-            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-            submitButton.classList.remove('hover:bg-green-700');
-        }
-    }
-}
 
 /**
  * Begin Event - Navigate to Record Times with event pre-selected
