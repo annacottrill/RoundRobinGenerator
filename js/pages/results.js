@@ -103,11 +103,17 @@ async function displayResults(eventId) {
                 `;
             } else {
                 html += `
-                    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-                        <p class="text-sm text-yellow-800">
-                            <strong>⚠ Warning:</strong> Not all times have been entered yet.
-                            ${completedRuns.length} of ${allRuns.length} runs completed.
-                        </p>
+                    <div class="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-yellow-800">
+                                <strong>⚠ Warning:</strong> Not all times have been entered yet.<br>
+                                ${completedRuns.length} of ${allRuns.length} runs completed.
+                            </p>
+                        </div>
+                        <button onclick="goToRecordTimes(${eventId})"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm whitespace-nowrap">
+                            Record Times →
+                        </button>
                     </div>
                 `;
             }
@@ -115,8 +121,12 @@ async function displayResults(eventId) {
 
         if (completedRuns.length === 0) {
             html += `
-                <div class="p-8 text-center text-gray-500 italic">
-                    No completed runs yet. Record times in the Record Times page.
+                <div class="p-8 text-center">
+                    <p class="text-gray-500 italic mb-4">No completed runs yet.</p>
+                    <button onclick="goToRecordTimes(${eventId})"
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+                        Go to Record Times →
+                    </button>
                 </div>
             `;
             resultsContainer.innerHTML = html;
@@ -358,9 +368,19 @@ async function generateIndividualStatistics(eventId, stats) {
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="mt-3 pt-3 border-t border-blue-200 flex justify-between text-sm font-semibold">
-                                        <span>Total: ${header.catches} catches, ${header.noTimes} NT</span>
-                                        <span class="text-blue-700">Avg: ${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</span>
+                                    <div class="mt-3 pt-3 border-t border-blue-200 space-y-1">
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Catches / No Times:</span>
+                                            <span>${header.catches} / ${header.noTimes}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Total Time:</span>
+                                            <span class="text-blue-700">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Average Time:</span>
+                                            <span class="text-blue-700">${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -390,9 +410,19 @@ async function generateIndividualStatistics(eventId, stats) {
                                             </div>
                                         `).join('')}
                                     </div>
-                                    <div class="mt-3 pt-3 border-t border-green-200 flex justify-between text-sm font-semibold">
-                                        <span>Total: ${heeler.catches} catches, ${heeler.noTimes} NT</span>
-                                        <span class="text-green-700">Avg: ${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</span>
+                                    <div class="mt-3 pt-3 border-t border-green-200 space-y-1">
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Catches / No Times:</span>
+                                            <span>${heeler.catches} / ${heeler.noTimes}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Total Time:</span>
+                                            <span class="text-green-700">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm font-semibold">
+                                            <span class="text-gray-700">Average Time:</span>
+                                            <span class="text-green-700">${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             `;
@@ -551,10 +581,23 @@ async function markEventActive(eventId) {
     }
 }
 
+/**
+ * Navigate to Record Times page with event pre-selected
+ * @param {number} eventId - Event ID to select
+ */
+function goToRecordTimes(eventId) {
+    router.navigate('record');
+    setTimeout(() => {
+        document.getElementById('record-event-select').value = eventId;
+        document.getElementById('record-event-select').dispatchEvent(new Event('change'));
+    }, 100);
+}
+
 // Export functions to global scope
 window.markEventCompleted = markEventCompleted;
 window.markEventActive = markEventActive;
 window.exportResultsToCSV = exportResultsToCSV;
+window.goToRecordTimes = goToRecordTimes;
 
 // Set up event listener
 document.getElementById('results-event-select').addEventListener('change', handleResultsEventChange);

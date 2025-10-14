@@ -21,6 +21,9 @@ const app = {
         // Load initial data and ensure DB is ready
         await this.loadInitialData();
 
+        // Update storage display
+        await this.updateStorageDisplay();
+
         // Initialize router after DB is ready
         router.init();
 
@@ -74,8 +77,12 @@ const app = {
      */
     async loadInitialData() {
         try {
-            // Ensure database is ready by making a simple query
+            // Make test queries to ensure database is ready and migrations are complete
+            // Dexie will automatically open the database on first query
             await db.ropers.count();
+            await db.events.count();
+            await db.runs.count();
+
             console.log('Database ready, initial data loaded');
         } catch (error) {
             console.error('Error loading initial data:', error);
@@ -307,14 +314,117 @@ const app = {
             console.error('Error clearing data:', error);
             this.showNotification('Error clearing data', 'error');
         }
+    },
+
+    /**
+     * Get storage usage information using Storage API
+     * @returns {Promise<Object>} - Object with usage, quota, and percentage
+     */
+    async getStorageInfo() {
+        try {
+            if ('storage' in navigator && 'estimate' in navigator.storage) {
+                const estimate = await navigator.storage.estimate();
+                const usage = estimate.usage || 0;
+                const quota = estimate.quota || 0;
+                const percentUsed = quota > 0 ? (usage / quota * 100) : 0;
+
+                return {
+                    usage: usage,
+                    quota: quota,
+                    percentUsed: percentUsed,
+                    usageFormatted: this.formatBytes(usage),
+                    quotaFormatted: this.formatBytes(quota),
+                    percentFormatted: percentUsed.toFixed(2) + '%'
+                };
+            } else {
+                // Storage API not supported
+                return {
+                    usage: 0,
+                    quota: 0,
+                    percentUsed: 0,
+                    usageFormatted: 'Unknown',
+                    quotaFormatted: 'Unknown',
+                    percentFormatted: 'N/A',
+                    unsupported: true
+                };
+            }
+        } catch (error) {
+            console.error('Error getting storage info:', error);
+            return {
+                usage: 0,
+                quota: 0,
+                percentUsed: 0,
+                usageFormatted: 'Error',
+                quotaFormatted: 'Error',
+                percentFormatted: 'N/A',
+                error: true
+            };
+        }
+    },
+
+    /**
+     * Format bytes to human-readable string
+     * @param {number} bytes - Number of bytes
+     * @returns {string} - Formatted string (e.g., "2.5 MB")
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        if (!bytes || isNaN(bytes)) return 'N/A';
+
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+
+    /**
+     * Update storage display in footer
+     */
+    async updateStorageDisplay() {
+        const storageInfo = await this.getStorageInfo();
+        const storageElement = document.getElementById('storage-info');
+
+        if (storageElement) {
+            if (storageInfo.unsupported) {
+                storageElement.textContent = 'Storage: N/A';
+            } else if (storageInfo.error) {
+                storageElement.textContent = 'Storage: Error';
+            } else {
+                // Show as "X / Y" format for clarity
+                storageElement.textContent = `Storage: ${storageInfo.usageFormatted} / ${storageInfo.quotaFormatted}`;
+
+                // Show warning if storage is over 80%
+                if (storageInfo.percentUsed > 80) {
+                    storageElement.classList.add('text-yellow-400');
+                } else {
+                    storageElement.classList.remove('text-yellow-400');
+                }
+            }
+        }
     }
 };
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => app.init());
+// Initialize app when DOM is ready and all scripts are loaded
+console.log('app.js: document.readyState =', document.readyState);
+
+// Use a more reliable initialization approach
+function initializeApp() {
+    console.log('initializeApp() called');
+    app.init().catch(err => console.error('Error during app initialization:', err));
+}
+
+// Check if we're already loaded
+if (document.readyState === 'complete') {
+    console.log('Document already complete, using setTimeout');
+    // Use setTimeout to ensure all inline scripts have executed
+    setTimeout(initializeApp, 0);
+} else if (document.readyState === 'interactive') {
+    console.log('Document interactive, waiting for load event');
+    window.addEventListener('load', initializeApp);
 } else {
-    app.init();
+    console.log('Document loading, waiting for load event');
+    window.addEventListener('load', initializeApp);
 }
 
 // Export app

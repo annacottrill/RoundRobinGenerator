@@ -47,10 +47,10 @@
         <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-blue-800 text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
             <!-- Sidebar Header -->
             <div class="p-4 bg-blue-900 flex justify-between items-center">
-                <div>
+                <a href="#home" class="cursor-pointer hover:opacity-80 transition-opacity" onclick="app.navigateTo('home')">
                     <h1 class="text-xl font-bold">Round Robin</h1>
                     <p class="text-blue-200 text-xs">Roping Manager</p>
-                </div>
+                </a>
                 <button id="sidebar-close" class="lg:hidden text-white hover:text-blue-200">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -161,7 +161,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                             <div class="bg-blue-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-blue-800">Total Ropers</h3>
-                                <p id="stat-ropers" class="text-3xl font-bold text-blue-600 mb-3">0</p>
+                                <p id="stat-ropers" class="text-3xl font-bold text-blue-600 mb-3">—</p>
                                 <button onclick="router.navigate('ropers');"
                                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                                     Add Roper
@@ -169,7 +169,7 @@
                             </div>
                             <div class="bg-green-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-green-800">Active Events</h3>
-                                <p id="stat-events" class="text-3xl font-bold text-green-600 mb-3">0</p>
+                                <p id="stat-events" class="text-3xl font-bold text-green-600 mb-3">—</p>
                                 <button onclick="router.navigate('events');"
                                         class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                                     Create Event
@@ -177,11 +177,24 @@
                             </div>
                             <div class="bg-purple-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-purple-800">Total Runs</h3>
-                                <p id="stat-runs" class="text-3xl font-bold text-purple-600 mb-3">0</p>
+                                <p id="stat-runs" class="text-3xl font-bold text-purple-600 mb-3">—</p>
                                 <button onclick="router.navigate('results');"
                                         class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
                                     View Results
                                 </button>
+                            </div>
+                        </div>
+
+                        <!-- Storage Info -->
+                        <div class="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-sm font-semibold text-gray-700">Database Storage</h3>
+                                    <p id="home-storage-info" class="text-lg font-bold text-gray-600 mt-1">Loading...</p>
+                                </div>
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                                </svg>
                             </div>
                         </div>
                     </div>
@@ -214,7 +227,8 @@
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Position</label>
                                     <select id="roper-position" required
-                                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                         <option value="">Select...</option>
                                         <option value="header">Header</option>
                                         <option value="heeler">Heeler</option>
@@ -231,6 +245,45 @@
                                 Add Roper
                             </button>
                         </form>
+
+                        <!-- Edit Roper Form (Hidden by default) -->
+                        <div id="edit-roper-section" class="hidden mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-300">
+                            <div class="mb-3">
+                                <h3 class="font-semibold text-blue-800">Edit Roper</h3>
+                            </div>
+                            <form id="edit-roper-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input type="hidden" id="edit-roper-id">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Name</label>
+                                    <input type="text" id="edit-roper-name" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Position</label>
+                                    <select id="edit-roper-position" required
+                                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
+                                        <option value="header">Header</option>
+                                        <option value="heeler">Heeler</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Skill Level (1-10)</label>
+                                    <input type="number" id="edit-roper-skill" min="1" max="10" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="md:col-span-3">
+                                    <button type="submit"
+                                            class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                                        Save Changes
+                                    </button>
+                                    <button type="button" onclick="cancelEditRoper()"
+                                            class="ml-2 bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
 
                         <!-- Ropers List -->
                         <div>
@@ -267,6 +320,38 @@
                                     <label class="block text-sm font-medium mb-1">Date</label>
                                     <input type="date" id="event-date" required
                                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <!-- Penalties Section -->
+                            <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex justify-between items-center mb-3">
+                                    <label class="block text-sm font-medium">Penalties</label>
+                                    <button type="button" onclick="addPenalty()"
+                                            class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                        + Add Penalty
+                                    </button>
+                                </div>
+                                <div id="penalties-list" class="space-y-2">
+                                    <!-- Penalties will be added here dynamically -->
+                                    <div class="penalty-item flex gap-2 items-center">
+                                        <input type="text" class="penalty-name flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Penalty name" value="One Leg">
+                                        <input type="number" class="penalty-seconds w-24 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Seconds" value="5" min="0" step="0.01">
+                                        <button type="button" onclick="removePenalty(this)" class="px-2 py-2 text-red-600 hover:text-red-800">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div class="penalty-item flex gap-2 items-center">
+                                        <input type="text" class="penalty-name flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Penalty name" value="Barrier">
+                                        <input type="number" class="penalty-seconds w-24 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Seconds" value="5" min="0" step="0.01">
+                                        <button type="button" onclick="removePenalty(this)" class="px-2 py-2 text-red-600 hover:text-red-800">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -327,95 +412,134 @@
                             <div class="mb-4">
                                 <label class="block text-sm font-medium mb-2">Select Event to Modify</label>
                                 <select id="modify-event-select"
-                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                     <option value="">Choose an event...</option>
                                 </select>
                             </div>
 
                             <!-- Event Modification Section -->
                             <div id="modify-event-section" class="hidden">
-                                <div class="mb-4 p-3 bg-white rounded-lg border">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h4 class="font-semibold" id="modify-event-name"></h4>
-                                            <p class="text-sm text-gray-600" id="modify-event-date"></p>
-                                            <div id="edit-date-form" class="hidden mt-2">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="date" id="new-event-date"
-                                                           class="px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500">
-                                                    <button onclick="saveEventDate()" class="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
-                                                        Save
-                                                    </button>
-                                                    <button onclick="cancelEditDate()" class="text-sm px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
-                                                        Cancel
-                                                    </button>
+                                <div class="mb-4 p-4 bg-white rounded-lg border-2 border-blue-200">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-800">Edit Event Details</h3>
+                                        <div class="flex items-center gap-3">
+                                            <span id="modify-event-status-badge" class="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                                                Active
+                                            </span>
+                                            <button id="toggle-event-status-btn" onclick="toggleEventStatus()"
+                                                    class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-medium">
+                                                Mark as Completed
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Completed Event View -->
+                                    <div id="event-completed-view" class="hidden">
+                                        <div class="p-4 bg-green-50 border-2 border-green-200 rounded-lg mb-4">
+                                            <div class="flex items-start justify-between">
+                                                <div>
+                                                    <h4 class="text-lg font-semibold text-green-800 mb-1" id="completed-event-name">Event Name</h4>
+                                                    <p class="text-sm text-green-700 mb-2" id="completed-event-date">Date</p>
+                                                    <p class="text-sm text-green-800">
+                                                        <strong>✓ Event Completed:</strong> This event is marked as completed. It cannot be modified or have new times recorded.
+                                                    </p>
+                                                </div>
+                                                <button id="reactivate-event-btn" onclick="toggleEventStatus()"
+                                                        class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-semibold whitespace-nowrap">
+                                                    Reactivate Event
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Active Event Editing View -->
+                                    <div id="event-editing-view">
+                                        <!-- Event Name and Date Fields -->
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Event Name</label>
+                                                <input type="text" id="modify-event-name-input"
+                                                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                       placeholder="Event name">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1">Event Date</label>
+                                                <input type="date" id="modify-event-date-input"
+                                                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                        </div>
+
+                                        <!-- Modify Penalties Section -->
+                                        <div id="event-modification-penalties" class="mb-4 p-4 bg-gray-50 rounded-lg">
+                                            <div class="flex justify-between items-center mb-3">
+                                                <label class="block text-sm font-medium">Penalties</label>
+                                                <button type="button" onclick="addModifyPenalty()"
+                                                        class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                                    + Add Penalty
+                                                </button>
+                                            </div>
+                                            <div id="modify-penalties-list" class="space-y-2">
+                                                <!-- Penalties will be loaded here -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Select Ropers -->
+                                        <div class="mb-4">
+                                            <label class="block text-sm font-medium mb-3">Select Participating Ropers</label>
+
+                                            <div id="event-modification-controls" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <!-- Modify Headers Section -->
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                                    <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                                                    Headers
+                                                </h4>
+                                                <input type="text" id="modify-headers-search"
+                                                       placeholder="Search headers..."
+                                                       class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                                                <div id="modify-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
+                                                    <p class="text-gray-500 italic text-sm">No headers available</p>
+                                                </div>
+                                            </div>
+
+                                            <!-- Modify Heelers Section -->
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                                                    <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
+                                                    Heelers
+                                                </h4>
+                                                <input type="text" id="modify-heelers-search"
+                                                       placeholder="Search heelers..."
+                                                       class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
+                                                <div id="modify-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
+                                                    <p class="text-gray-500 italic text-sm">No heelers available</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <span id="modify-event-status-badge" class="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
-                                            Active
-                                        </span>
                                     </div>
-                                    <div class="mt-3 pt-3 border-t flex flex-wrap gap-2">
-                                        <button id="begin-existing-event-btn" onclick="beginExistingEvent()" class="hidden text-sm px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold">
-                                            Begin Event →
-                                        </button>
-                                        <button id="edit-date-btn" onclick="editEventDate()"
-                                                class="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-                                            Edit Date
-                                        </button>
-                                        <button id="toggle-event-status-btn" onclick="toggleEventStatus()"
-                                                class="text-sm px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700">
-                                            Mark as Completed
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div id="event-modification-controls" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <!-- Modify Headers Section -->
-                                    <div>
-                                        <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                            <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
-                                            Headers
-                                        </h4>
-                                        <div id="modify-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
-                                            <p class="text-gray-500 italic text-sm">No headers available</p>
+                                        <div id="event-edit-buttons" class="flex flex-wrap gap-3 mt-4">
+                                            <button onclick="updateEvent()"
+                                                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                                Update Event
+                                            </button>
+                                            <button onclick="cancelModifyEvent()"
+                                                    class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                                                Cancel
+                                            </button>
+                                            <div class="flex-grow"></div>
+                                            <button id="begin-existing-event-btn" onclick="beginExistingEvent()" class="hidden px-6 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold">
+                                                Begin Event →
+                                            </button>
+                                        </div>
+
+                                        <div id="event-edit-warning" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                            <p class="text-sm text-yellow-800">
+                                                <strong>Note:</strong> Changing ropers will regenerate all teams and delete recorded times. Changing penalties will delete recorded times (since penalty changes affect scoring). Only updating the name or date will preserve existing times.
+                                            </p>
                                         </div>
                                     </div>
-
-                                    <!-- Modify Heelers Section -->
-                                    <div>
-                                        <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                                            <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
-                                            Heelers
-                                        </h4>
-                                        <div id="modify-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
-                                            <p class="text-gray-500 italic text-sm">No heelers available</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div id="event-edit-buttons" class="flex gap-3">
-                                    <button onclick="updateEventRopers()"
-                                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                                        Update & Regenerate Teams
-                                    </button>
-                                    <button onclick="cancelModifyEvent()"
-                                            class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
-                                        Cancel
-                                    </button>
-                                </div>
-
-                                <div id="event-edit-warning" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                    <p class="text-sm text-yellow-800">
-                                        <strong>Note:</strong> Updating ropers will regenerate all teams and delete any recorded times for this event.
-                                    </p>
-                                </div>
-
-                                <div id="event-completed-message" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                    <p class="text-sm text-green-800">
-                                        <strong>✓ Event Completed:</strong> This event is marked as completed. It cannot be modified or have new times recorded. Mark as active to make changes.
-                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -433,7 +557,8 @@
                         <div class="mb-6">
                             <label class="block text-sm font-medium mb-2">Select Event</label>
                             <select id="record-event-select"
-                                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                    style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                 <option value="">Choose an event...</option>
                             </select>
                         </div>
@@ -463,7 +588,8 @@
                         <div class="mb-6">
                             <label class="block text-sm font-medium mb-2">Select Event</label>
                             <select id="results-event-select"
-                                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                    style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                 <option value="">Choose an event...</option>
                             </select>
                         </div>
@@ -481,9 +607,13 @@
         <!-- Footer -->
         <footer class="bg-gray-800 text-white py-4 mt-6">
             <div class="container mx-auto px-4 text-center">
-                <p class="text-sm">
-                    <span id="online-status" class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                    <span id="status-text">Online</span>
+                <p class="text-sm flex items-center justify-center gap-4">
+                    <span class="flex items-center">
+                        <span id="online-status" class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                        <span id="status-text">Online</span>
+                    </span>
+                    <span class="text-gray-400">•</span>
+                    <span id="storage-info" class="text-gray-300">Storage: Loading...</span>
                 </p>
                 <p class="text-xs text-gray-400 mt-2">PWA Version 1.0</p>
             </div>

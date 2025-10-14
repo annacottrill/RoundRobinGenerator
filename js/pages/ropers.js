@@ -11,6 +11,9 @@ async function loadRopersPage() {
         // Reset page state
         document.getElementById('add-roper-form').reset();
 
+        // Hide edit form if visible
+        document.getElementById('edit-roper-section').classList.add('hidden');
+
         // Clear search field
         const searchField = document.getElementById('roper-search');
         if (searchField) searchField.value = '';
@@ -136,7 +139,7 @@ async function handleAddRoper(e) {
 }
 
 /**
- * Edit a roper (placeholder for future enhancement)
+ * Edit a roper - shows edit form
  * @param {number} id - Roper ID
  */
 async function editRoper(id) {
@@ -144,23 +147,73 @@ async function editRoper(id) {
         const roper = await dbHelpers.getRoper(id);
         if (!roper) return;
 
-        // Simple prompt-based editing (can be enhanced with a modal)
-        const newName = prompt('Enter new name:', roper.name);
-        if (!newName) return;
+        // Show edit form section
+        const editSection = document.getElementById('edit-roper-section');
+        editSection.classList.remove('hidden');
 
-        const newPosition = prompt('Enter position (header/heeler):', roper.position);
-        if (!newPosition) return;
+        // Populate form with current values
+        document.getElementById('edit-roper-id').value = roper.id;
+        document.getElementById('edit-roper-name').value = roper.name;
+        document.getElementById('edit-roper-position').value = roper.position;
+        document.getElementById('edit-roper-skill').value = roper.skillLevel;
 
-        const newSkill = prompt('Enter skill level (1-10):', roper.skillLevel);
-        if (!newSkill) return;
+        // Scroll to edit form
+        editSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (error) {
+        console.error('Error loading roper for edit:', error);
+        app.showNotification('Error loading roper', 'error');
+    }
+}
+
+/**
+ * Cancel editing and hide the edit form
+ */
+function cancelEditRoper() {
+    const editSection = document.getElementById('edit-roper-section');
+    editSection.classList.add('hidden');
+    document.getElementById('edit-roper-form').reset();
+}
+
+/**
+ * Handle edit roper form submission
+ */
+async function handleEditRoper(e) {
+    e.preventDefault();
+
+    try {
+        const id = parseInt(document.getElementById('edit-roper-id').value);
+        const name = document.getElementById('edit-roper-name').value.trim();
+        const position = document.getElementById('edit-roper-position').value;
+        const skillLevel = parseInt(document.getElementById('edit-roper-skill').value);
+
+        if (!name || !position) {
+            app.showNotification('Please fill in all fields', 'error');
+            return;
+        }
+
+        // Check for duplicate name in the same position (excluding current roper)
+        const existingRopers = await dbHelpers.getAllRopers();
+        const duplicate = existingRopers.find(r =>
+            r.id !== id &&
+            r.name.toLowerCase() === name.toLowerCase() &&
+            r.position === position
+        );
+
+        if (duplicate) {
+            app.showNotification(`A ${position} named "${name}" already exists!`, 'error');
+            return;
+        }
 
         await dbHelpers.updateRoper(id, {
-            name: newName.trim(),
-            position: newPosition.toLowerCase(),
-            skillLevel: parseInt(newSkill)
+            name: name,
+            position: position,
+            skillLevel: skillLevel
         });
 
         app.showNotification('Roper updated successfully!', 'success');
+
+        // Hide edit form and refresh list
+        cancelEditRoper();
         await displayRopers();
     } catch (error) {
         console.error('Error editing roper:', error);
@@ -175,7 +228,18 @@ async function editRoper(id) {
  */
 async function deleteRoper(id, name) {
     try {
-        const confirmed = await app.confirm(`Are you sure you want to delete ${name}?`);
+        // Check if roper is used in any events
+        const usageInfo = await dbHelpers.isRoperUsedInEvents(id);
+
+        let confirmMessage;
+        if (usageInfo.isUsed) {
+            const eventText = usageInfo.eventCount === 1 ? 'event' : 'events';
+            confirmMessage = `${name} is in ${usageInfo.eventCount} ${eventText}. They will be hidden from active lists but their data will be preserved in events. Are you sure you want to delete ${name}?`;
+        } else {
+            confirmMessage = `Are you sure you want to delete ${name}?`;
+        }
+
+        const confirmed = await app.confirm(confirmMessage, 'Delete Roper');
         if (!confirmed) return;
 
         await dbHelpers.deleteRoper(id);
@@ -193,8 +257,9 @@ async function deleteRoper(id, name) {
     }
 }
 
-// Set up form submission handler
+// Set up form submission handlers
 document.getElementById('add-roper-form').addEventListener('submit', handleAddRoper);
+document.getElementById('edit-roper-form').addEventListener('submit', handleEditRoper);
 
 // Set up search handler
 document.getElementById('ropers-search').addEventListener('input', (e) => {
@@ -211,5 +276,6 @@ window.addEventListener('pageload', (e) => {
 // Export functions to global scope
 window.editRoper = editRoper;
 window.deleteRoper = deleteRoper;
+window.cancelEditRoper = cancelEditRoper;
 
 console.log('Ropers page script loaded');

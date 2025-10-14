@@ -117,9 +117,35 @@ async function displayTeamsForRecording(eventId) {
             return;
         }
 
+        // Get event penalties (or use defaults if none)
+        const penalties = event.penalties || [
+            { name: 'One Leg', seconds: 5 },
+            { name: 'Barrier', seconds: 5 }
+        ];
+
         teamsList.innerHTML = runs.map((run, index) => {
             const isEditing = currentEditingRunId === run.id;
             const isNoTime = run.time === null || run.time === 999999;
+
+            // Generate penalty checkboxes dynamically
+            const penaltyCheckboxes = penalties.map((penalty, penaltyIndex) => {
+                const penaltyId = `penalty-${penaltyIndex}-${run.id}`;
+                const isChecked = isEditing && run.penalties && run.penalties[penaltyIndex];
+                return `
+                    <label class="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg border border-gray-200 transition-colors">
+                        <input type="checkbox" id="${penaltyId}" data-penalty-index="${penaltyIndex}" data-penalty-seconds="${penalty.seconds}"
+                               ${isChecked ? 'checked' : ''}
+                               onchange="calculateFinalTime(${run.id})"
+                               class="penalty-checkbox w-6 h-6 text-red-600 rounded focus:ring-2 focus:ring-red-500">
+                        <span class="text-base font-medium">${penalty.name} (+${penalty.seconds}s)</span>
+                    </label>
+                `;
+            }).join('');
+
+            // Generate penalty display for completed runs
+            const penaltyDisplay = run.penalties && run.penalties.length > 0
+                ? run.penalties.map((applied, idx) => applied ? ` | +${penalties[idx].seconds}s ${penalties[idx].name}` : '').filter(Boolean).join('')
+                : '';
 
             return `
             <div class="p-4 bg-gray-50 rounded-lg border ${run.completed ? 'border-green-300' : 'border-gray-200'}">
@@ -145,9 +171,7 @@ async function displayTeamsForRecording(eventId) {
                                             </div>
                                             ${run.rawTime ? `
                                                 <div class="text-xs text-gray-600">
-                                                    Raw: ${app.formatTime(run.rawTime)}s
-                                                    ${run.penaltyOneLeg ? ' | +5s One Leg' : ''}
-                                                    ${run.penaltyBarrier ? ' | +5s Barrier' : ''}
+                                                    Raw: ${app.formatTime(run.rawTime)}s${penaltyDisplay}
                                                 </div>
                                             ` : ''}
                                         `}
@@ -203,20 +227,7 @@ async function displayTeamsForRecording(eventId) {
                             `}
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3 px-2">
-                            <label class="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg border border-gray-200 transition-colors">
-                                <input type="checkbox" id="penalty-leg-${run.id}"
-                                       ${isEditing && run.penaltyOneLeg ? 'checked' : ''}
-                                       onchange="calculateFinalTime(${run.id})"
-                                       class="w-6 h-6 text-red-600 rounded focus:ring-2 focus:ring-red-500">
-                                <span class="text-base font-medium">One Leg (+5s)</span>
-                            </label>
-                            <label class="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg border border-gray-200 transition-colors">
-                                <input type="checkbox" id="penalty-barrier-${run.id}"
-                                       ${isEditing && run.penaltyBarrier ? 'checked' : ''}
-                                       onchange="calculateFinalTime(${run.id})"
-                                       class="w-6 h-6 text-red-600 rounded focus:ring-2 focus:ring-red-500">
-                                <span class="text-base font-medium">Broke Barrier (+5s)</span>
-                            </label>
+                            ${penaltyCheckboxes}
                         </div>
                         <div id="final-time-${run.id}" class="text-sm font-semibold text-blue-600 px-2 ${isEditing && !isNoTime ? '' : 'hidden'}">
                             Final Time: <span id="final-time-value-${run.id}">${isEditing && !isNoTime ? app.formatTime(run.time) : '0.00'}</span>s
@@ -240,8 +251,6 @@ async function displayTeamsForRecording(eventId) {
  */
 function calculateFinalTime(runId) {
     const rawTimeInput = document.getElementById(`raw-time-${runId}`);
-    const penaltyLegCheckbox = document.getElementById(`penalty-leg-${runId}`);
-    const penaltyBarrierCheckbox = document.getElementById(`penalty-barrier-${runId}`);
     const finalTimeDisplay = document.getElementById(`final-time-${runId}`);
     const finalTimeValue = document.getElementById(`final-time-value-${runId}`);
 
@@ -250,13 +259,14 @@ function calculateFinalTime(runId) {
     if (!isNaN(rawTime) && rawTime > 0) {
         let finalTime = rawTime;
 
-        // Add 5 seconds for each penalty
-        if (penaltyLegCheckbox.checked) {
-            finalTime += 5.0;
-        }
-        if (penaltyBarrierCheckbox.checked) {
-            finalTime += 5.0;
-        }
+        // Find all penalty checkboxes for this run and add their seconds
+        const penaltyCheckboxes = document.querySelectorAll(`[id^="penalty-"][id$="-${runId}"]`);
+        penaltyCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const penaltySeconds = parseFloat(checkbox.dataset.penaltySeconds) || 0;
+                finalTime += penaltySeconds;
+            }
+        });
 
         finalTimeValue.textContent = finalTime.toFixed(2);
         finalTimeDisplay.classList.remove('hidden');
@@ -272,9 +282,6 @@ function calculateFinalTime(runId) {
 async function recordTime(runId) {
     try {
         const rawTimeInput = document.getElementById(`raw-time-${runId}`);
-        const penaltyLegCheckbox = document.getElementById(`penalty-leg-${runId}`);
-        const penaltyBarrierCheckbox = document.getElementById(`penalty-barrier-${runId}`);
-
         const rawTime = parseFloat(rawTimeInput.value);
 
         if (isNaN(rawTime) || rawTime <= 0) {
@@ -282,19 +289,26 @@ async function recordTime(runId) {
             return;
         }
 
-        // Calculate final time with penalties
+        // Calculate final time with penalties and collect penalty states
         let finalTime = rawTime;
-        const penaltyOneLeg = penaltyLegCheckbox.checked;
-        const penaltyBarrier = penaltyBarrierCheckbox.checked;
+        const penaltyCheckboxes = document.querySelectorAll(`[id^="penalty-"][id$="-${runId}"]`);
+        const penalties = [];
 
-        if (penaltyOneLeg) finalTime += 5.0;
-        if (penaltyBarrier) finalTime += 5.0;
+        penaltyCheckboxes.forEach(checkbox => {
+            const penaltyIndex = parseInt(checkbox.dataset.penaltyIndex);
+            const isChecked = checkbox.checked;
+            penalties[penaltyIndex] = isChecked;
+
+            if (isChecked) {
+                const penaltySeconds = parseFloat(checkbox.dataset.penaltySeconds) || 0;
+                finalTime += penaltySeconds;
+            }
+        });
 
         await dbHelpers.recordRunTime(runId, {
             rawTime: rawTime,
             finalTime: finalTime,
-            penaltyOneLeg: penaltyOneLeg,
-            penaltyBarrier: penaltyBarrier
+            penalties: penalties
         });
 
         app.showNotification('Time recorded successfully!', 'success');
@@ -325,8 +339,7 @@ async function recordNoTime(runId) {
         await dbHelpers.recordRunTime(runId, {
             rawTime: null,
             finalTime: 999999, // Sort NT runs to the bottom
-            penaltyOneLeg: false,
-            penaltyBarrier: false
+            penalties: [] // No penalties for NT
         });
 
         app.showNotification('No Time recorded', 'success');
@@ -365,9 +378,6 @@ async function editRunTime(runId) {
 async function saveEditedTime(runId) {
     try {
         const rawTimeInput = document.getElementById(`raw-time-${runId}`);
-        const penaltyLegCheckbox = document.getElementById(`penalty-leg-${runId}`);
-        const penaltyBarrierCheckbox = document.getElementById(`penalty-barrier-${runId}`);
-
         const rawTime = parseFloat(rawTimeInput.value);
 
         if (isNaN(rawTime) || rawTime <= 0) {
@@ -375,19 +385,26 @@ async function saveEditedTime(runId) {
             return;
         }
 
-        // Calculate final time with penalties
+        // Calculate final time with penalties and collect penalty states
         let finalTime = rawTime;
-        const penaltyOneLeg = penaltyLegCheckbox.checked;
-        const penaltyBarrier = penaltyBarrierCheckbox.checked;
+        const penaltyCheckboxes = document.querySelectorAll(`[id^="penalty-"][id$="-${runId}"]`);
+        const penalties = [];
 
-        if (penaltyOneLeg) finalTime += 5.0;
-        if (penaltyBarrier) finalTime += 5.0;
+        penaltyCheckboxes.forEach(checkbox => {
+            const penaltyIndex = parseInt(checkbox.dataset.penaltyIndex);
+            const isChecked = checkbox.checked;
+            penalties[penaltyIndex] = isChecked;
+
+            if (isChecked) {
+                const penaltySeconds = parseFloat(checkbox.dataset.penaltySeconds) || 0;
+                finalTime += penaltySeconds;
+            }
+        });
 
         await dbHelpers.recordRunTime(runId, {
             rawTime: rawTime,
             finalTime: finalTime,
-            penaltyOneLeg: penaltyOneLeg,
-            penaltyBarrier: penaltyBarrier
+            penalties: penalties
         });
 
         app.showNotification('Time updated successfully!', 'success');
@@ -419,8 +436,7 @@ async function saveEditedNoTime(runId) {
         await dbHelpers.recordRunTime(runId, {
             rawTime: null,
             finalTime: 999999, // Sort NT runs to the bottom
-            penaltyOneLeg: false,
-            penaltyBarrier: false
+            penalties: [] // No penalties for NT
         });
 
         app.showNotification('Updated to No Time', 'success');
@@ -450,10 +466,29 @@ function cancelEdit() {
 /**
  * Navigate to Results page with current event pre-selected
  */
-function goToResults() {
+async function goToResults() {
     if (!currentEventId) {
         app.showNotification('Please select an event first', 'error');
         return;
+    }
+
+    // Check if all times have been entered
+    const allRuns = await dbHelpers.getRunsByEvent(currentEventId);
+    const completedRuns = allRuns.filter(r => r.completed);
+    const totalRuns = allRuns.length;
+    const completedCount = completedRuns.length;
+
+    if (completedCount < totalRuns) {
+        // Show confirmation dialog
+        const confirmed = await app.confirm(
+            `Warning: Only ${completedCount} of ${totalRuns} times have been entered.\n\n` +
+            `Continue to view results anyway?`
+        );
+
+        if (!confirmed) {
+            // User chose to stay and enter more times
+            return;
+        }
     }
 
     // Navigate to results page

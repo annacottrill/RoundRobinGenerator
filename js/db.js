@@ -27,6 +27,59 @@ db.version(1).stores({
     runs: '++id, eventId, headerId, heelerId, time, round'
 });
 
+// Version 2: Add penalties support to events
+db.version(2).stores({
+    ropers: '++id, name, position, skillLevel',
+    events: '++id, name, date, createdAt',
+    runs: '++id, eventId, headerId, heelerId, time, round'
+}).upgrade(tx => {
+    // Migrate existing events to have default penalties
+    return tx.table('events').toCollection().modify(event => {
+        if (!event.penalties) {
+            event.penalties = [
+                { name: 'One Leg', seconds: 5 },
+                { name: 'Barrier', seconds: 5 }
+            ];
+        }
+    });
+});
+
+// Version 3: Migrate runs from boolean penalty fields to penalties array
+db.version(3).stores({
+    ropers: '++id, name, position, skillLevel',
+    events: '++id, name, date, createdAt',
+    runs: '++id, eventId, headerId, heelerId, time, round'
+}).upgrade(tx => {
+    // Migrate existing runs to use penalties array
+    return tx.table('runs').toCollection().modify(run => {
+        // Convert old boolean fields to array format
+        // Array index 0 = One Leg, index 1 = Barrier
+        if (!run.penalties) {
+            run.penalties = [
+                run.penaltyOneLeg || false,
+                run.penaltyBarrier || false
+            ];
+        }
+        // Clean up old fields (optional, but keeps database cleaner)
+        delete run.penaltyOneLeg;
+        delete run.penaltyBarrier;
+    });
+});
+
+// Version 4: Add soft delete support to ropers
+db.version(4).stores({
+    ropers: '++id, name, position, skillLevel',
+    events: '++id, name, date, createdAt',
+    runs: '++id, eventId, headerId, heelerId, time, round'
+}).upgrade(tx => {
+    // Add deleted field to all existing ropers (default to false)
+    return tx.table('ropers').toCollection().modify(roper => {
+        if (roper.deleted === undefined) {
+            roper.deleted = false;
+        }
+    });
+});
+
 /**
  * Database Helper Functions
  * These functions provide a clean API for CRUD operations
@@ -45,25 +98,35 @@ const dbHelpers = {
             name: roper.name,
             position: roper.position, // 'header' or 'heeler'
             skillLevel: roper.skillLevel, // 1-10
+            deleted: false,
             createdAt: new Date()
         });
     },
 
     /**
-     * Get all ropers from the database
-     * @returns {Promise<Array>} - Array of all ropers
+     * Get all ropers from the database (excluding deleted ropers)
+     * @returns {Promise<Array>} - Array of non-deleted ropers
      */
     async getAllRopers() {
+        const allRopers = await db.ropers.toArray();
+        return allRopers.filter(r => !r.deleted);
+    },
+
+    /**
+     * Get all ropers including deleted ones (for displaying in event results)
+     * @returns {Promise<Array>} - Array of all ropers
+     */
+    async getAllRopersIncludingDeleted() {
         return await db.ropers.toArray();
     },
 
     /**
-     * Get ropers filtered by position
+     * Get ropers filtered by position (excluding deleted ropers)
      * @param {string} position - 'header' or 'heeler'
-     * @returns {Promise<Array>} - Array of ropers matching position
+     * @returns {Promise<Array>} - Array of non-deleted ropers matching position
      */
     async getRopersByPosition(position) {
-        return await db.ropers.where('position').equals(position).toArray();
+        return await db.ropers.where('position').equals(position).filter(r => !r.deleted).toArray();
     },
 
     /**
@@ -77,12 +140,30 @@ const dbHelpers = {
     },
 
     /**
-     * Delete a roper
+     * Soft delete a roper (marks as deleted rather than removing from DB)
      * @param {number} id - Roper ID
-     * @returns {Promise<void>}
+     * @returns {Promise<number>} - Number of records updated
      */
     async deleteRoper(id) {
-        return await db.ropers.delete(id);
+        return await db.ropers.update(id, { deleted: true });
+    },
+
+    /**
+     * Check if a roper is used in any events
+     * @param {number} roperId - Roper ID
+     * @returns {Promise<{isUsed: boolean, eventCount: number, events: Array}>}
+     */
+    async isRoperUsedInEvents(roperId) {
+        const events = await db.events.toArray();
+        const usedInEvents = events.filter(event =>
+            event.roperIds && event.roperIds.includes(roperId)
+        );
+
+        return {
+            isUsed: usedInEvents.length > 0,
+            eventCount: usedInEvents.length,
+            events: usedInEvents
+        };
     },
 
     /**
@@ -107,6 +188,10 @@ const dbHelpers = {
             date: event.date,
             roperIds: event.roperIds, // Array of participating roper IDs
             pairings: event.pairings, // Array of team pairings [{headerId, heelerId, round}]
+            penalties: event.penalties || [
+                { name: 'One Leg', seconds: 5 },
+                { name: 'Barrier', seconds: 5 }
+            ], // Array of penalty objects
             createdAt: new Date(),
             status: 'active' // 'active' or 'completed'
         });
@@ -179,8 +264,7 @@ const dbHelpers = {
         return await db.runs.update(runId, {
             time: timeData.finalTime,
             rawTime: timeData.rawTime,
-            penaltyOneLeg: timeData.penaltyOneLeg || false,
-            penaltyBarrier: timeData.penaltyBarrier || false,
+            penalties: timeData.penalties || [],
             completed: true,
             recordedAt: new Date()
         });
@@ -208,12 +292,18 @@ const dbHelpers = {
             const header = await db.ropers.get(run.headerId);
             const heeler = await db.ropers.get(run.heelerId);
 
+            // Add (Deleted) indicator to names if roper is deleted
+            const headerName = header ? (header.deleted ? `${header.name} (Deleted)` : header.name) : 'Unknown';
+            const heelerName = heeler ? (heeler.deleted ? `${heeler.name} (Deleted)` : heeler.name) : 'Unknown';
+
             return {
                 ...run,
-                headerName: header ? header.name : 'Unknown',
-                heelerName: heeler ? heeler.name : 'Unknown',
+                headerName: headerName,
+                heelerName: heelerName,
                 headerSkill: header ? header.skillLevel : 0,
-                heelerSkill: heeler ? heeler.skillLevel : 0
+                heelerSkill: heeler ? heeler.skillLevel : 0,
+                headerDeleted: header ? header.deleted : false,
+                heelerDeleted: heeler ? heeler.deleted : false
             };
         }));
 
@@ -345,11 +435,12 @@ const dbHelpers = {
     // ==================== STATISTICS ====================
 
     /**
-     * Get database statistics for the dashboard
+     * Get database statistics for the dashboard (excludes deleted ropers)
      * @returns {Promise<Object>} - Object with counts
      */
     async getStats() {
-        const roperCount = await db.ropers.count();
+        const allRopers = await db.ropers.toArray();
+        const roperCount = allRopers.filter(r => !r.deleted).length;
         const eventCount = await db.events.count();
         const runCount = await db.runs.count();
 

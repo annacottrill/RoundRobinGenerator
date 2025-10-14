@@ -3,11 +3,14 @@
  * Handles the dashboard/home page functionality
  */
 
+console.log('Home.js loaded - defining loadHomePage');
+
 /**
  * Load and display home page data
  */
 async function loadHomePage() {
     try {
+        console.log('loadHomePage called');
         // Update statistics
         await updateStats();
 
@@ -24,11 +27,55 @@ async function loadHomePage() {
  */
 async function updateStats() {
     try {
+        console.log('updateStats called');
         const stats = await dbHelpers.getStats();
+        console.log('Stats from DB:', stats);
 
-        document.getElementById('stat-ropers').textContent = stats.ropers;
-        document.getElementById('stat-events').textContent = stats.events;
-        document.getElementById('stat-runs').textContent = stats.runs;
+        const ropersStat = document.getElementById('stat-ropers');
+        const eventsStat = document.getElementById('stat-events');
+        const runsStat = document.getElementById('stat-runs');
+
+        console.log('DOM elements found:', {
+            ropers: !!ropersStat,
+            events: !!eventsStat,
+            runs: !!runsStat
+        });
+
+        if (ropersStat) {
+            console.log('Setting ropers to', stats.ropers);
+            ropersStat.textContent = stats.ropers;
+        }
+        if (eventsStat) {
+            console.log('Setting events to', stats.events);
+            eventsStat.textContent = stats.events;
+        }
+        if (runsStat) {
+            console.log('Setting runs to', stats.runs);
+            runsStat.textContent = stats.runs;
+        }
+
+        // Update storage info on home page
+        const storageInfo = await app.getStorageInfo();
+        const homeStorageElement = document.getElementById('home-storage-info');
+        if (homeStorageElement) {
+            if (storageInfo.unsupported) {
+                homeStorageElement.textContent = 'Not Available';
+            } else if (storageInfo.error) {
+                homeStorageElement.textContent = 'Error';
+            } else {
+                // Show as "X / Y (Z%)" format for more context
+                homeStorageElement.textContent = `${storageInfo.usageFormatted} / ${storageInfo.quotaFormatted} (${storageInfo.percentFormatted})`;
+
+                // Show warning color if over 80%
+                if (storageInfo.percentUsed > 80) {
+                    homeStorageElement.classList.add('text-yellow-600');
+                } else {
+                    homeStorageElement.classList.remove('text-yellow-600');
+                }
+            }
+        }
+
+        console.log('updateStats complete');
     } catch (error) {
         console.error('Error updating stats:', error);
     }
@@ -52,7 +99,7 @@ async function loadRecentEvents() {
 
         recentEventsContainer.innerHTML = recentEvents.map(event => `
             <div class="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                 onclick="router.navigate('results'); setTimeout(() => document.getElementById('results-event-select').value = ${event.id}, 100);">
+                 onclick="router.navigate('results'); setTimeout(() => { document.getElementById('results-event-select').value = ${event.id}; document.getElementById('results-event-select').dispatchEvent(new Event('change')); }, 100);">
                 <div class="flex justify-between items-center">
                     <div>
                         <h4 class="font-semibold">${event.name}</h4>
@@ -80,7 +127,8 @@ window.addEventListener('pageload', (e) => {
     }
 });
 
-// Export updateStats so it can be called from other pages
+// Export functions so they can be called from other pages and the router
+window.loadHomePage = loadHomePage;
 window.updateStats = updateStats;
 
-console.log('Home page script loaded');
+console.log('Home page script loaded - window.loadHomePage is', typeof window.loadHomePage);
