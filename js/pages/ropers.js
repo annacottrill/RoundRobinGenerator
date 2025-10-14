@@ -8,6 +8,13 @@
  */
 async function loadRopersPage() {
     try {
+        // Reset page state
+        document.getElementById('add-roper-form').reset();
+
+        // Clear search field
+        const searchField = document.getElementById('roper-search');
+        if (searchField) searchField.value = '';
+
         await displayRopers();
     } catch (error) {
         console.error('Error loading ropers page:', error);
@@ -17,8 +24,9 @@ async function loadRopersPage() {
 
 /**
  * Display all ropers in the list
+ * @param {string} searchTerm - Optional search term to filter ropers
  */
-async function displayRopers() {
+async function displayRopers(searchTerm = '') {
     try {
         const ropers = await dbHelpers.getAllRopers();
         const ropersList = document.getElementById('ropers-list');
@@ -28,10 +36,20 @@ async function displayRopers() {
             return;
         }
 
-        // Sort ropers by name
-        ropers.sort((a, b) => a.name.localeCompare(b.name));
+        // Filter ropers by search term
+        const filteredRopers = searchTerm
+            ? ropers.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()))
+            : ropers;
 
-        ropersList.innerHTML = ropers.map(roper => `
+        // Sort ropers by name
+        filteredRopers.sort((a, b) => a.name.localeCompare(b.name));
+
+        if (filteredRopers.length === 0) {
+            ropersList.innerHTML = '<p class="text-gray-500 italic">No ropers match your search.</p>';
+            return;
+        }
+
+        ropersList.innerHTML = filteredRopers.map(roper => `
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div class="flex-grow">
                     <div class="flex items-center gap-3">
@@ -78,6 +96,18 @@ async function handleAddRoper(e) {
 
         if (!name || !position) {
             app.showNotification('Please fill in all fields', 'error');
+            return;
+        }
+
+        // Check for duplicate name in the same position
+        const existingRopers = await dbHelpers.getAllRopers();
+        const duplicate = existingRopers.find(r =>
+            r.name.toLowerCase() === name.toLowerCase() &&
+            r.position === position
+        );
+
+        if (duplicate) {
+            app.showNotification(`A ${position} named "${name}" already exists!`, 'error');
             return;
         }
 
@@ -165,6 +195,11 @@ async function deleteRoper(id, name) {
 
 // Set up form submission handler
 document.getElementById('add-roper-form').addEventListener('submit', handleAddRoper);
+
+// Set up search handler
+document.getElementById('ropers-search').addEventListener('input', (e) => {
+    displayRopers(e.target.value);
+});
 
 // Listen for page load events
 window.addEventListener('pageload', (e) => {

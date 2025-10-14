@@ -80,4 +80,7 @@ window.addEventListener('pageload', (e) => {
     }
 });
 
+// Export updateStats so it can be called from other pages
+window.updateStats = updateStats;
+
 console.log('Home page script loaded');

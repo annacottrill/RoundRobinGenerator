@@ -8,6 +8,10 @@
  */
 async function loadResultsPage() {
     try {
+        // Reset page state
+        document.getElementById('results-event-select').value = '';
+        document.getElementById('results-section').classList.add('hidden');
+
         const events = await dbHelpers.getAllEvents();
         const select = document.getElementById('results-event-select');
 
@@ -133,6 +137,7 @@ async function displayResults(eventId) {
                             <tr class="bg-blue-100">
                                 <th class="border border-blue-200 p-3 text-left">Rank</th>
                                 <th class="border border-blue-200 p-3 text-left">Name</th>
+                                <th class="border border-blue-200 p-3 text-center">Runs</th>
                                 <th class="border border-blue-200 p-3 text-center">Catches</th>
                                 <th class="border border-blue-200 p-3 text-center">No Times</th>
                                 <th class="border border-blue-200 p-3 text-center">Total Time</th>
@@ -174,6 +179,7 @@ async function displayResults(eventId) {
                                     <tr class="${actualRank <= 3 && header.catches > 0 ? 'bg-blue-50 font-semibold' : ''}">
                                         <td class="border border-blue-200 p-3 text-center">${rankBadge}</td>
                                         <td class="border border-blue-200 p-3">${header.name}</td>
+                                        <td class="border border-blue-200 p-3 text-center font-bold text-gray-700">${header.totalRuns}</td>
                                         <td class="border border-blue-200 p-3 text-center font-bold text-green-600">${header.catches}</td>
                                         <td class="border border-blue-200 p-3 text-center ${header.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${header.noTimes}</td>
                                         <td class="border border-blue-200 p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</td>
@@ -201,6 +207,7 @@ async function displayResults(eventId) {
                             <tr class="bg-green-100">
                                 <th class="border border-green-200 p-3 text-left">Rank</th>
                                 <th class="border border-green-200 p-3 text-left">Name</th>
+                                <th class="border border-green-200 p-3 text-center">Runs</th>
                                 <th class="border border-green-200 p-3 text-center">Catches</th>
                                 <th class="border border-green-200 p-3 text-center">No Times</th>
                                 <th class="border border-green-200 p-3 text-center">Total Time</th>
@@ -242,6 +249,7 @@ async function displayResults(eventId) {
                                     <tr class="${actualRank <= 3 && heeler.catches > 0 ? 'bg-green-50 font-semibold' : ''}">
                                         <td class="border border-green-200 p-3 text-center">${rankBadge}</td>
                                         <td class="border border-green-200 p-3">${heeler.name}</td>
+                                        <td class="border border-green-200 p-3 text-center font-bold text-gray-700">${heeler.totalRuns}</td>
                                         <td class="border border-green-200 p-3 text-center font-bold text-green-600">${heeler.catches}</td>
                                         <td class="border border-green-200 p-3 text-center ${heeler.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${heeler.noTimes}</td>
                                         <td class="border border-green-200 p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</td>

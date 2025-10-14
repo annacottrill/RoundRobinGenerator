@@ -12,17 +12,17 @@ const app = {
     async init() {
         console.log('Initializing Round Robin Roping App...');
 
-        // Initialize router
-        router.init();
-
         // Set up online/offline status monitoring
         this.setupOnlineStatus();
 
         // Set up global error handling
         this.setupErrorHandling();
 
-        // Load initial data
+        // Load initial data and ensure DB is ready
         await this.loadInitialData();
+
+        // Initialize router after DB is ready
+        router.init();
 
         console.log('App initialized successfully');
     },
@@ -74,9 +74,9 @@ const app = {
      */
     async loadInitialData() {
         try {
-            // This will be called when the app loads
-            // Page-specific loaders will handle their own data
-            console.log('Initial data loaded');
+            // Ensure database is ready by making a simple query
+            await db.ropers.count();
+            console.log('Database ready, initial data loaded');
         } catch (error) {
             console.error('Error loading initial data:', error);
         }
@@ -215,6 +215,17 @@ const app = {
     },
 
     /**
+     * Parse a YYYY-MM-DD date string to a Date object in local timezone
+     * Avoids timezone conversion issues when parsing date strings
+     * @param {string} dateString - Date in YYYY-MM-DD format
+     * @returns {Date} - Date object at midnight local time
+     */
+    parseLocalDate(dateString) {
+        const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+        return new Date(year, month - 1, day);
+    },
+
+    /**
      * Generate round robin pairings with predictable rotation
      * Each header ropes with each heeler exactly once
      * Headers go in the same order every round
@@ -271,6 +282,31 @@ const app = {
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
         return shuffled;
+    },
+
+    /**
+     * Clear all data from the database
+     */
+    async clearAllData() {
+        try {
+            await db.ropers.clear();
+            await db.events.clear();
+            await db.runs.clear();
+
+            this.showNotification('All data has been cleared', 'success');
+
+            // Reload the current page to show empty state
+            const currentPage = document.querySelector('.page.active').id.replace('page-', '');
+            window.dispatchEvent(new CustomEvent('pageload', { detail: { page: currentPage } }));
+
+            // Navigate to home
+            setTimeout(() => {
+                router.navigate('home');
+            }, 500);
+        } catch (error) {
+            console.error('Error clearing data:', error);
+            this.showNotification('Error clearing data', 'error');
+        }
     }
 };
 
@@ -283,5 +319,93 @@ if (document.readyState === 'loading') {
 
 // Export app
 window.app = app;
+
+/**
+ * Show the clear data modal
+ */
+function showClearDataModal() {
+    const modal = document.getElementById('clear-data-modal');
+    const input = document.getElementById('clear-data-confirm-input');
+    const confirmBtn = document.getElementById('clear-data-modal-confirm');
+    const error = document.getElementById('clear-data-error');
+
+    // Reset modal state
+    input.value = '';
+    confirmBtn.disabled = true;
+    error.classList.add('hidden');
+
+    // Show modal
+    modal.classList.remove('hidden');
+
+    // Focus input
+    setTimeout(() => input.focus(), 100);
+}
+
+/**
+ * Hide the clear data modal
+ */
+function hideClearDataModal() {
+    const modal = document.getElementById('clear-data-modal');
+    const input = document.getElementById('clear-data-confirm-input');
+    const error = document.getElementById('clear-data-error');
+
+    modal.classList.add('hidden');
+    input.value = '';
+    error.classList.add('hidden');
+}
+
+/**
+ * Handle the clear data confirmation
+ */
+async function handleClearDataConfirm() {
+    const input = document.getElementById('clear-data-confirm-input');
+    const error = document.getElementById('clear-data-error');
+
+    if (input.value === 'DELETE') {
+        hideClearDataModal();
+        await app.clearAllData();
+    } else {
+        error.classList.remove('hidden');
+        input.focus();
+        input.select();
+    }
+}
+
+// Set up modal event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('clear-data-modal');
+    const input = document.getElementById('clear-data-confirm-input');
+    const confirmBtn = document.getElementById('clear-data-modal-confirm');
+    const cancelBtn = document.getElementById('clear-data-modal-cancel');
+
+    // Enable/disable confirm button based on input
+    input.addEventListener('input', () => {
+        confirmBtn.disabled = input.value !== 'DELETE';
+    });
+
+    // Handle confirm button click
+    confirmBtn.addEventListener('click', handleClearDataConfirm);
+
+    // Handle cancel button click
+    cancelBtn.addEventListener('click', hideClearDataModal);
+
+    // Handle Enter key in input
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && input.value === 'DELETE') {
+            handleClearDataConfirm();
+        }
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideClearDataModal();
+        }
+    });
+});
+
+// Export functions to global scope
+window.showClearDataModal = showClearDataModal;
+window.hideClearDataModal = hideClearDataModal;
 
 console.log('App loaded');

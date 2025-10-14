@@ -6,16 +6,40 @@
 // Store current event being modified
 let currentModifyEventId = null;
 
+// Store last created event ID for Begin Event button
+let lastCreatedEventId = null;
+
 /**
  * Load the events page
  */
 async function loadEventsPage() {
     try {
+        // Reset page state
+        currentModifyEventId = null;
+        lastCreatedEventId = null;
+
+        // Reset and hide the create event form sections
+        document.getElementById('create-event-form').reset();
+        document.getElementById('pairings-section').classList.add('hidden');
+
+        // Reset and hide the modify event section
+        document.getElementById('modify-event-select').value = '';
+        document.getElementById('modify-event-section').classList.add('hidden');
+
+        // Clear search fields
+        const headerSearch = document.getElementById('event-headers-search');
+        const heelerSearch = document.getElementById('event-heelers-search');
+        if (headerSearch) headerSearch.value = '';
+        if (heelerSearch) heelerSearch.value = '';
+
         await loadRopersForSelection();
         await loadEventsForModification();
 
         // Set default date to today
         document.getElementById('event-date').value = app.getTodayDate();
+
+        // Set up validation for create event button
+        validateCreateEventButton();
     } catch (error) {
         console.error('Error loading events page:', error);
         app.showNotification('Error loading page', 'error');
@@ -25,8 +49,10 @@ async function loadEventsPage() {
 /**
  * Load ropers for selection checkboxes
  * Separates headers and heelers into different sections
+ * @param {string} headerSearch - Search term for headers
+ * @param {string} heelerSearch - Search term for heelers
  */
-async function loadRopersForSelection() {
+async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
     try {
         const ropers = await dbHelpers.getAllRopers();
         const headersContainer = document.getElementById('event-headers-selection');
@@ -39,10 +65,16 @@ async function loadRopersForSelection() {
         }
 
         // Filter headers (position = 'header' only)
-        const headers = ropers.filter(r => r.position === 'header');
+        let headers = ropers.filter(r => r.position === 'header');
+        if (headerSearch) {
+            headers = headers.filter(r => r.name.toLowerCase().includes(headerSearch.toLowerCase()));
+        }
 
         // Filter heelers (position = 'heeler' only)
-        const heelers = ropers.filter(r => r.position === 'heeler');
+        let heelers = ropers.filter(r => r.position === 'heeler');
+        if (heelerSearch) {
+            heelers = heelers.filter(r => r.name.toLowerCase().includes(heelerSearch.toLowerCase()));
+        }
 
         // Sort headers and heelers alphabetically by name
         headers.sort((a, b) => a.name.localeCompare(b.name));
@@ -52,10 +84,19 @@ async function loadRopersForSelection() {
         if (headers.length === 0) {
             headersContainer.innerHTML = '<p class="text-gray-500 italic text-sm">No headers available</p>';
         } else {
-            headersContainer.innerHTML = headers.map(roper => `
-                <label class="flex items-center gap-2 p-2 rounded hover:bg-blue-100 cursor-pointer transition-colors">
-                    <input type="checkbox" name="event-roper" value="${roper.id}"
+            headersContainer.innerHTML = `
+                <label class="flex items-center gap-2 p-2 rounded bg-blue-100 cursor-pointer transition-colors font-semibold mb-2">
+                    <input type="checkbox" id="select-all-headers"
+                           onchange="toggleSelectAll('headers')"
                            class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                    <span class="flex-grow text-sm">
+                        Select All Headers
+                    </span>
+                </label>
+            ` + headers.map(roper => `
+                <label class="flex items-center gap-2 p-2 rounded hover:bg-blue-100 cursor-pointer transition-colors">
+                    <input type="checkbox" name="event-roper" value="${roper.id}" data-position="header"
+                           class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 event-header-checkbox">
                     <span class="flex-grow text-sm">
                         ${roper.name}
                     </span>
@@ -67,16 +108,28 @@ async function loadRopersForSelection() {
         if (heelers.length === 0) {
             heelersContainer.innerHTML = '<p class="text-gray-500 italic text-sm">No heelers available</p>';
         } else {
-            heelersContainer.innerHTML = heelers.map(roper => `
-                <label class="flex items-center gap-2 p-2 rounded hover:bg-green-100 cursor-pointer transition-colors">
-                    <input type="checkbox" name="event-roper" value="${roper.id}"
+            heelersContainer.innerHTML = `
+                <label class="flex items-center gap-2 p-2 rounded bg-green-100 cursor-pointer transition-colors font-semibold mb-2">
+                    <input type="checkbox" id="select-all-heelers"
+                           onchange="toggleSelectAll('heelers')"
                            class="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500">
+                    <span class="flex-grow text-sm">
+                        Select All Heelers
+                    </span>
+                </label>
+            ` + heelers.map(roper => `
+                <label class="flex items-center gap-2 p-2 rounded hover:bg-green-100 cursor-pointer transition-colors">
+                    <input type="checkbox" name="event-roper" value="${roper.id}" data-position="heeler"
+                           class="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500 event-heeler-checkbox">
                     <span class="flex-grow text-sm">
                         ${roper.name}
                     </span>
                 </label>
             `).join('');
         }
+
+        // Validate button state after loading ropers
+        setTimeout(() => validateCreateEventButton(), 50);
     } catch (error) {
         console.error('Error loading ropers for selection:', error);
     }
@@ -134,6 +187,9 @@ async function handleCreateEvent(e) {
             roperIds: selectedRopers,
             pairings: pairings
         });
+
+        // Store the event ID for Begin Event button
+        lastCreatedEventId = eventId;
 
         app.showNotification(`Event "${eventName}" created with ${pairings.length} teams!`, 'success');
 
@@ -277,6 +333,18 @@ async function loadEventForModification(eventId) {
             statusBadge.textContent = 'Active';
             toggleBtn.textContent = 'Mark as Completed';
             toggleBtn.className = 'text-sm px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700';
+        }
+
+        // Show "Begin Event" button if event date is today or in the past
+        const beginEventBtn = document.getElementById('begin-existing-event-btn');
+        const eventDate = app.parseLocalDate(event.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (eventDate <= today && !isCompleted) {
+            beginEventBtn.classList.remove('hidden');
+        } else {
+            beginEventBtn.classList.add('hidden');
         }
 
         // Show/hide modification controls based on completion status
@@ -493,10 +561,202 @@ document.getElementById('create-event-form').addEventListener('submit', handleCr
 // Set up modify event dropdown handler
 document.getElementById('modify-event-select').addEventListener('change', handleModifyEventChange);
 
+// Set up search handlers for create event page
+document.getElementById('event-headers-search').addEventListener('input', (e) => {
+    const heelerSearch = document.getElementById('event-heelers-search').value;
+    loadRopersForSelection(e.target.value, heelerSearch);
+});
+
+document.getElementById('event-heelers-search').addEventListener('input', (e) => {
+    const headerSearch = document.getElementById('event-headers-search').value;
+    loadRopersForSelection(headerSearch, e.target.value);
+});
+
+// Set up validation for event name and date inputs
+document.getElementById('event-name').addEventListener('input', validateCreateEventButton);
+document.getElementById('event-date').addEventListener('change', validateCreateEventButton);
+
+// Set up validation when checkboxes change (use event delegation on the containers)
+document.getElementById('event-headers-selection').addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox' && e.target.name === 'event-roper') {
+        validateCreateEventButton();
+    }
+});
+
+document.getElementById('event-heelers-selection').addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox' && e.target.name === 'event-roper') {
+        validateCreateEventButton();
+    }
+});
+
 // Export functions to global scope
+/**
+ * Toggle select all for headers or heelers
+ * @param {string} position - 'headers' or 'heelers'
+ */
+function toggleSelectAll(position) {
+    const selectAllId = position === 'headers' ? 'select-all-headers' : 'select-all-heelers';
+    const checkboxClass = position === 'headers' ? '.event-header-checkbox' : '.event-heeler-checkbox';
+
+    const selectAllCheckbox = document.getElementById(selectAllId);
+    const checkboxes = document.querySelectorAll(checkboxClass);
+
+    checkboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+    });
+
+    // Validate the create event button after toggling
+    validateCreateEventButton();
+}
+
+/**
+ * Validate the create event button state
+ * Disables button unless event name, date, and at least 1 header + 1 heeler are selected
+ */
+function validateCreateEventButton() {
+    const submitButton = document.querySelector('#create-event-form button[type="submit"]');
+    const eventName = document.getElementById('event-name').value.trim();
+    const eventDate = document.getElementById('event-date').value;
+
+    // Get selected ropers
+    const selectedCheckboxes = document.querySelectorAll('input[name="event-roper"]:checked');
+    const selectedRoperIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+
+    // Check if we have at least one header and one heeler
+    const hasHeader = Array.from(selectedCheckboxes).some(cb => cb.dataset.position === 'header');
+    const hasHeeler = Array.from(selectedCheckboxes).some(cb => cb.dataset.position === 'heeler');
+
+    // Enable button only if all conditions are met
+    const isValid = eventName && eventDate && hasHeader && hasHeeler;
+
+    if (submitButton) {
+        submitButton.disabled = !isValid;
+        if (isValid) {
+            submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            submitButton.classList.add('hover:bg-green-700');
+        } else {
+            submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+            submitButton.classList.remove('hover:bg-green-700');
+        }
+    }
+}
+
+/**
+ * Begin Event - Navigate to Record Times with event pre-selected
+ */
+function beginEvent() {
+    if (!lastCreatedEventId) {
+        app.showNotification('No event selected', 'error');
+        return;
+    }
+
+    // Navigate to record times page
+    router.navigate('record');
+
+    // Wait for page to load, then select the event
+    setTimeout(() => {
+        const selectElement = document.getElementById('record-event-select');
+        if (selectElement) {
+            selectElement.value = lastCreatedEventId;
+            // Trigger change event to load the teams
+            selectElement.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+}
+
+/**
+ * Navigate to Record Times page with current modified event
+ */
+function beginExistingEvent() {
+    if (!currentModifyEventId) {
+        app.showNotification('Please select an event first', 'error');
+        return;
+    }
+
+    // Navigate to record times page
+    router.navigate('record');
+
+    // Wait for page to load, then select the event
+    setTimeout(() => {
+        const selectElement = document.getElementById('record-event-select');
+        if (selectElement) {
+            selectElement.value = currentModifyEventId;
+            // Trigger change event to load the teams
+            selectElement.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+}
+
+/**
+ * Show the edit date form
+ */
+function editEventDate() {
+    if (!currentModifyEventId) return;
+
+    const editDateForm = document.getElementById('edit-date-form');
+    const editDateBtn = document.getElementById('edit-date-btn');
+    const newEventDateInput = document.getElementById('new-event-date');
+
+    // Get current event to populate the date
+    dbHelpers.getEvent(currentModifyEventId).then(event => {
+        if (event) {
+            newEventDateInput.value = event.date;
+            editDateForm.classList.remove('hidden');
+            editDateBtn.classList.add('hidden');
+        }
+    });
+}
+
+/**
+ * Cancel editing the date
+ */
+function cancelEditDate() {
+    const editDateForm = document.getElementById('edit-date-form');
+    const editDateBtn = document.getElementById('edit-date-btn');
+
+    editDateForm.classList.add('hidden');
+    editDateBtn.classList.remove('hidden');
+}
+
+/**
+ * Save the new event date
+ */
+async function saveEventDate() {
+    if (!currentModifyEventId) return;
+
+    const newEventDateInput = document.getElementById('new-event-date');
+    const newDate = newEventDateInput.value;
+
+    if (!newDate) {
+        app.showNotification('Please select a date', 'error');
+        return;
+    }
+
+    try {
+        await dbHelpers.updateEvent(currentModifyEventId, { date: newDate });
+
+        app.showNotification('Event date updated!', 'success');
+
+        // Hide the form and show the button again
+        cancelEditDate();
+
+        // Reload the event display to show new date
+        await loadEventForModification(currentModifyEventId);
+    } catch (error) {
+        console.error('Error updating event date:', error);
+        app.showNotification('Error updating date', 'error');
+    }
+}
+
 window.updateEventRopers = updateEventRopers;
 window.cancelModifyEvent = cancelModifyEvent;
 window.toggleEventStatus = toggleEventStatus;
+window.toggleSelectAll = toggleSelectAll;
+window.beginEvent = beginEvent;
+window.beginExistingEvent = beginExistingEvent;
+window.editEventDate = editEventDate;
+window.cancelEditDate = cancelEditDate;
+window.saveEventDate = saveEventDate;
 
 // Listen for page load events
 window.addEventListener('pageload', (e) => {

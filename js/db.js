@@ -275,28 +275,36 @@ const dbHelpers = {
                 };
             }
 
+            // Determine run status
+            // isCatch: completed run with valid time
+            // isNoTime: completed run with no time or time >= 999999
+            // incomplete: not completed at all (no time entered yet)
+            const isCatch = run.completed && run.time !== null && run.time < 999999;
+            const isExplicitNoTime = run.completed && (run.time === null || run.time >= 999999);
+            const isIncomplete = !run.completed;
+
+            // Update header stats
             if (run.completed) {
-                const isCatch = run.time !== null && run.time < 999999;
-
-                // Update header stats
                 headerStats[run.headerId].totalRuns++;
-                if (isCatch) {
-                    headerStats[run.headerId].catches++;
-                    headerStats[run.headerId].totalTime += run.time;
-                    headerStats[run.headerId].times.push(run.time);
-                } else {
-                    headerStats[run.headerId].noTimes++;
-                }
+            }
+            if (isCatch) {
+                headerStats[run.headerId].catches++;
+                headerStats[run.headerId].totalTime += run.time;
+                headerStats[run.headerId].times.push(run.time);
+            } else if (isExplicitNoTime || isIncomplete) {
+                headerStats[run.headerId].noTimes++;
+            }
 
-                // Update heeler stats
+            // Update heeler stats
+            if (run.completed) {
                 heelerStats[run.heelerId].totalRuns++;
-                if (isCatch) {
-                    heelerStats[run.heelerId].catches++;
-                    heelerStats[run.heelerId].totalTime += run.time;
-                    heelerStats[run.heelerId].times.push(run.time);
-                } else {
-                    heelerStats[run.heelerId].noTimes++;
-                }
+            }
+            if (isCatch) {
+                heelerStats[run.heelerId].catches++;
+                heelerStats[run.heelerId].totalTime += run.time;
+                heelerStats[run.heelerId].times.push(run.time);
+            } else if (isExplicitNoTime || isIncomplete) {
+                heelerStats[run.heelerId].noTimes++;
             }
         });
 
@@ -307,11 +315,15 @@ const dbHelpers = {
                 avgTime: stat.catches > 0 ? stat.totalTime / stat.catches : 999999,
                 bestTime: stat.times.length > 0 ? Math.min(...stat.times) : null
             })).sort((a, b) => {
-                // Sort by catches (descending), then by average time (ascending)
+                // Sort by catches (descending), then by average time (ascending), then alphabetically by name
                 if (b.catches !== a.catches) {
                     return b.catches - a.catches;
                 }
-                return a.avgTime - b.avgTime;
+                if (Math.abs(a.avgTime - b.avgTime) > 0.001) {
+                    return a.avgTime - b.avgTime;
+                }
+                // If catches and avgTime are the same, sort alphabetically
+                return a.name.localeCompare(b.name);
             });
         };
 

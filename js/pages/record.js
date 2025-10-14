@@ -11,6 +11,16 @@ let currentEditingRunId = null;
  */
 async function loadRecordPage() {
     try {
+        // Reset page state
+        currentEventId = null;
+        currentEditingRunId = null;
+
+        // Reset the event selection dropdown
+        document.getElementById('record-event-select').value = '';
+
+        // Hide the teams section
+        document.getElementById('record-teams-section').classList.add('hidden');
+
         await loadEventOptions('record-event-select');
     } catch (error) {
         console.error('Error loading record page:', error);
@@ -70,12 +80,39 @@ async function handleRecordEventChange(e) {
  */
 async function displayTeamsForRecording(eventId) {
     try {
+        const event = await db.events.get(eventId);
         const runs = await dbHelpers.getRunsWithRopers(eventId);
         const teamsList = document.getElementById('record-teams-list');
         const teamsSection = document.getElementById('record-teams-section');
 
         if (runs.length === 0) {
             teamsList.innerHTML = '<p class="text-gray-500 italic">No teams found for this event.</p>';
+            teamsSection.classList.remove('hidden');
+            return;
+        }
+
+        // Check if event date is in the future
+        const eventDate = app.parseLocalDate(event.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const isEventInFuture = eventDate > today;
+
+        if (isEventInFuture) {
+            teamsList.innerHTML = `
+                <div class="p-6 bg-yellow-50 rounded-lg border border-yellow-300 text-center">
+                    <svg class="w-16 h-16 mx-auto text-yellow-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">Event Not Started</h3>
+                    <p class="text-gray-600 mb-1">
+                        This event is scheduled for <span class="font-semibold">${app.formatDate(event.date)}</span>
+                    </p>
+                    <p class="text-gray-500 text-sm">
+                        You cannot record times until the event date arrives.
+                    </p>
+                </div>
+            `;
             teamsSection.classList.remove('hidden');
             return;
         }
@@ -165,20 +202,20 @@ async function displayTeamsForRecording(eventId) {
                                 </button>
                             `}
                         </div>
-                        <div class="flex gap-4 px-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
+                        <div class="flex flex-col sm:flex-row gap-3 px-2">
+                            <label class="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg border border-gray-200 transition-colors">
                                 <input type="checkbox" id="penalty-leg-${run.id}"
                                        ${isEditing && run.penaltyOneLeg ? 'checked' : ''}
                                        onchange="calculateFinalTime(${run.id})"
-                                       class="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500">
-                                <span class="text-sm">One Leg (+5s)</span>
+                                       class="w-6 h-6 text-red-600 rounded focus:ring-2 focus:ring-red-500">
+                                <span class="text-base font-medium">One Leg (+5s)</span>
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
+                            <label class="flex items-center gap-3 cursor-pointer bg-gray-50 hover:bg-gray-100 p-3 rounded-lg border border-gray-200 transition-colors">
                                 <input type="checkbox" id="penalty-barrier-${run.id}"
                                        ${isEditing && run.penaltyBarrier ? 'checked' : ''}
                                        onchange="calculateFinalTime(${run.id})"
-                                       class="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500">
-                                <span class="text-sm">Broke Barrier (+5s)</span>
+                                       class="w-6 h-6 text-red-600 rounded focus:ring-2 focus:ring-red-500">
+                                <span class="text-base font-medium">Broke Barrier (+5s)</span>
                             </label>
                         </div>
                         <div id="final-time-${run.id}" class="text-sm font-semibold text-blue-600 px-2 ${isEditing && !isNoTime ? '' : 'hidden'}">
@@ -410,6 +447,29 @@ function cancelEdit() {
     displayTeamsForRecording(currentEventId);
 }
 
+/**
+ * Navigate to Results page with current event pre-selected
+ */
+function goToResults() {
+    if (!currentEventId) {
+        app.showNotification('Please select an event first', 'error');
+        return;
+    }
+
+    // Navigate to results page
+    router.navigate('results');
+
+    // Wait for page to load, then select the event
+    setTimeout(() => {
+        const selectElement = document.getElementById('results-event-select');
+        if (selectElement) {
+            selectElement.value = currentEventId;
+            // Trigger change event to load the results
+            selectElement.dispatchEvent(new Event('change'));
+        }
+    }, 100);
+}
+
 // Set up event listener
 document.getElementById('record-event-select').addEventListener('change', handleRecordEventChange);
 
@@ -428,5 +488,6 @@ window.saveEditedTime = saveEditedTime;
 window.saveEditedNoTime = saveEditedNoTime;
 window.cancelEdit = cancelEdit;
 window.calculateFinalTime = calculateFinalTime;
+window.goToResults = goToResults;
 
 console.log('Record page script loaded');

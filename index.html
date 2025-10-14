@@ -41,51 +41,112 @@
 </head>
 <body class="bg-gray-50">
     <!-- Main App Container -->
-    <div id="app" class="min-h-screen flex flex-col">
+    <div id="app" class="min-h-screen flex">
 
-        <!-- Header -->
-        <header class="bg-blue-600 text-white shadow-lg">
-            <div class="container mx-auto px-4 py-4">
-                <h1 class="text-2xl font-bold">Team Roping Round Robin</h1>
-                <p class="text-blue-100 text-sm">Offline-Ready Event Manager</p>
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-30 w-64 bg-blue-800 text-white transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+            <!-- Sidebar Header -->
+            <div class="p-4 bg-blue-900 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl font-bold">Round Robin</h1>
+                    <p class="text-blue-200 text-xs">Roping Manager</p>
+                </div>
+                <button id="sidebar-close" class="lg:hidden text-white hover:text-blue-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
             </div>
-        </header>
 
-        <!-- Navigation -->
-        <nav class="bg-white shadow-md sticky top-0 z-10">
-            <div class="container mx-auto px-4">
-                <ul class="flex overflow-x-auto space-x-2 py-2">
+            <!-- Navigation Links -->
+            <nav class="py-4 flex-1">
+                <ul class="space-y-1">
                     <li>
-                        <a href="#home" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="home">
-                            Home
+                        <a href="#home" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="home">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                            </svg>
+                            <span>Home</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#ropers" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="ropers">
-                            Manage Ropers
+                        <a href="#ropers" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="ropers">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <span>Manage Ropers</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#events" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="events">
-                            Create Event
+                        <a href="#events" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="events">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>Create Event</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#record" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="record">
-                            Record Times
+                        <a href="#record" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="record">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Record Times</span>
                         </a>
                     </li>
                     <li>
-                        <a href="#results" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="results">
-                            View Results
+                        <a href="#results" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="results">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <span>View Results</span>
                         </a>
                     </li>
                 </ul>
-            </div>
-        </nav>
+            </nav>
 
-        <!-- Main Content Area -->
-        <main class="flex-grow container mx-auto px-4 py-6">
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-blue-700">
+                <button onclick="showClearDataModal()"
+                        class="w-full text-blue-200 hover:text-white text-xs py-2 transition-colors flex items-center justify-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    <span>Clear All Data</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay (for mobile) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden"></div>
+
+        <!-- Main Content Wrapper -->
+        <div class="flex-1 flex flex-col min-h-screen">
+            <!-- Mobile Header with Hamburger -->
+            <header class="bg-blue-600 text-white shadow-lg lg:hidden">
+                <div class="flex items-center justify-between px-4 py-4">
+                    <button id="sidebar-toggle" class="text-white hover:text-blue-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <div class="text-center">
+                        <h1 class="text-xl font-bold">Round Robin</h1>
+                        <p class="text-blue-100 text-xs">Roping Manager</p>
+                    </div>
+                    <div class="w-6"></div> <!-- Spacer for centering -->
+                </div>
+            </header>
+
+            <!-- Desktop Header -->
+            <header class="hidden lg:block bg-blue-600 text-white shadow-lg">
+                <div class="container mx-auto px-6 py-4">
+                    <h1 class="text-2xl font-bold">Team Roping Round Robin</h1>
+                    <p class="text-blue-100 text-sm">Offline-Ready Event Manager</p>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-grow container mx-auto px-4 py-6">
 
             <!-- Home Page -->
             <div id="page-home" class="page active">
@@ -98,20 +159,29 @@
 
                         <!-- Stats Dashboard -->
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                            <div class="bg-blue-50 p-4 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
-                                 onclick="router.navigate('ropers');">
+                            <div class="bg-blue-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-blue-800">Total Ropers</h3>
-                                <p id="stat-ropers" class="text-3xl font-bold text-blue-600">0</p>
+                                <p id="stat-ropers" class="text-3xl font-bold text-blue-600 mb-3">0</p>
+                                <button onclick="router.navigate('ropers');"
+                                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                                    Add Roper
+                                </button>
                             </div>
-                            <div class="bg-green-50 p-4 rounded-lg hover:bg-green-100 cursor-pointer transition-colors"
-                                 onclick="router.navigate('events');">
+                            <div class="bg-green-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-green-800">Active Events</h3>
-                                <p id="stat-events" class="text-3xl font-bold text-green-600">0</p>
+                                <p id="stat-events" class="text-3xl font-bold text-green-600 mb-3">0</p>
+                                <button onclick="router.navigate('events');"
+                                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                                    Create Event
+                                </button>
                             </div>
-                            <div class="bg-purple-50 p-4 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors"
-                                 onclick="router.navigate('record');">
+                            <div class="bg-purple-50 p-4 rounded-lg transition-colors">
                                 <h3 class="text-lg font-semibold text-purple-800">Total Runs</h3>
-                                <p id="stat-runs" class="text-3xl font-bold text-purple-600">0</p>
+                                <p id="stat-runs" class="text-3xl font-bold text-purple-600 mb-3">0</p>
+                                <button onclick="router.navigate('results');"
+                                        class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                                    View Results
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -165,6 +235,11 @@
                         <!-- Ropers List -->
                         <div>
                             <h3 class="font-semibold mb-3">All Ropers</h3>
+                            <!-- Search Box -->
+                            <div class="mb-4">
+                                <input type="text" id="ropers-search" placeholder="Search ropers by name..."
+                                       class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                            </div>
                             <div id="ropers-list" class="space-y-2">
                                 <p class="text-gray-500 italic">No ropers added yet.</p>
                             </div>
@@ -177,7 +252,7 @@
             <div id="page-events" class="page">
                 <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Create Event & Generate Pairings</h2>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Create Event & Generate Teams</h2>
 
                         <!-- Create Event Form -->
                         <form id="create-event-form" class="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -206,6 +281,8 @@
                                             <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
                                             Headers
                                         </h4>
+                                        <input type="text" id="event-headers-search" placeholder="Search headers..."
+                                               class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
                                         <div id="event-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
                                             <p class="text-gray-500 italic text-sm">No headers available</p>
                                         </div>
@@ -217,6 +294,8 @@
                                             <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
                                             Heelers
                                         </h4>
+                                        <input type="text" id="event-heelers-search" placeholder="Search heelers..."
+                                               class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
                                         <div id="event-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
                                             <p class="text-gray-500 italic text-sm">No heelers available</p>
                                         </div>
@@ -224,16 +303,22 @@
                                 </div>
                             </div>
 
-                            <button type="submit"
-                                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                                Create Event & Generate Pairings
+                            <button type="submit" disabled
+                                    class="bg-green-600 text-white px-6 py-2 rounded-lg opacity-50 cursor-not-allowed">
+                                Create Event & Generate Teams
                             </button>
                         </form>
 
-                        <!-- Generated Pairings -->
+                        <!-- Generated Teams -->
                         <div id="pairings-section" class="hidden">
-                            <h3 class="font-semibold mb-3">Generated Pairings</h3>
+                            <h3 class="font-semibold mb-3">Generated Teams</h3>
                             <div id="pairings-list" class="space-y-2"></div>
+                            <div class="mt-4">
+                                <button id="begin-event-btn" onclick="beginEvent()"
+                                        class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg">
+                                    Begin Event →
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Manage Existing Events -->
@@ -254,12 +339,31 @@
                                         <div>
                                             <h4 class="font-semibold" id="modify-event-name"></h4>
                                             <p class="text-sm text-gray-600" id="modify-event-date"></p>
+                                            <div id="edit-date-form" class="hidden mt-2">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="date" id="new-event-date"
+                                                           class="px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                                    <button onclick="saveEventDate()" class="text-sm px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700">
+                                                        Save
+                                                    </button>
+                                                    <button onclick="cancelEditDate()" class="text-sm px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                         <span id="modify-event-status-badge" class="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
                                             Active
                                         </span>
                                     </div>
-                                    <div class="mt-3 pt-3 border-t">
+                                    <div class="mt-3 pt-3 border-t flex flex-wrap gap-2">
+                                        <button id="begin-existing-event-btn" onclick="beginExistingEvent()" class="hidden text-sm px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 font-semibold">
+                                            Begin Event →
+                                        </button>
+                                        <button id="edit-date-btn" onclick="editEventDate()"
+                                                class="text-sm px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                                            Edit Date
+                                        </button>
                                         <button id="toggle-event-status-btn" onclick="toggleEventStatus()"
                                                 class="text-sm px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700">
                                             Mark as Completed
@@ -294,7 +398,7 @@
                                 <div id="event-edit-buttons" class="flex gap-3">
                                     <button onclick="updateEventRopers()"
                                             class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                                        Update & Regenerate Pairings
+                                        Update & Regenerate Teams
                                     </button>
                                     <button onclick="cancelModifyEvent()"
                                             class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
@@ -304,7 +408,7 @@
 
                                 <div id="event-edit-warning" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                                     <p class="text-sm text-yellow-800">
-                                        <strong>Note:</strong> Updating ropers will regenerate all pairings and delete any recorded times for this event.
+                                        <strong>Note:</strong> Updating ropers will regenerate all teams and delete any recorded times for this event.
                                     </p>
                                 </div>
 
@@ -338,6 +442,12 @@
                         <div id="record-teams-section" class="hidden">
                             <h3 class="font-semibold mb-3">Teams</h3>
                             <div id="record-teams-list" class="space-y-3"></div>
+                            <div class="mt-6 text-center">
+                                <button id="see-results-btn" onclick="goToResults()"
+                                        class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg">
+                                    See Results →
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -399,6 +509,55 @@
         </div>
     </div>
 
+    <!-- Clear All Data Modal -->
+    <div id="clear-data-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Clear All Data</h3>
+                    <p class="text-sm text-gray-500">This action cannot be undone</p>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-gray-700 mb-4">
+                    This will permanently delete:
+                </p>
+                <ul class="list-disc list-inside space-y-1 text-gray-600 mb-4 ml-2">
+                    <li>All ropers</li>
+                    <li>All events</li>
+                    <li>All recorded times and runs</li>
+                </ul>
+                <p class="text-gray-700 font-semibold mb-2">
+                    To confirm, please type <span class="font-mono bg-gray-100 px-2 py-1 rounded text-red-600">DELETE</span> below:
+                </p>
+                <input type="text" id="clear-data-confirm-input"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                       placeholder="Type DELETE to confirm">
+                <p id="clear-data-error" class="hidden text-sm text-red-600 mt-2">
+                    Please type DELETE exactly as shown
+                </p>
+            </div>
+
+            <div class="flex gap-3 justify-end">
+                <button id="clear-data-modal-cancel"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    Cancel
+                </button>
+                <button id="clear-data-modal-confirm"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled>
+                    Clear All Data
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/db.js"></script>
     <script src="js/router.js"></script>
@@ -408,6 +567,37 @@
     <script src="js/pages/events.js"></script>
     <script src="js/pages/record.js"></script>
     <script src="js/pages/results.js"></script>
+
+    <!-- Sidebar Navigation Toggle -->
+    <script>
+        // Toggle sidebar on mobile
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+            document.getElementById('sidebar-overlay').classList.remove('hidden');
+        });
+
+        // Close sidebar with X button
+        document.getElementById('sidebar-close').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('sidebar-overlay').classList.add('hidden');
+        });
+
+        // Close sidebar when clicking overlay
+        document.getElementById('sidebar-overlay').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('sidebar-overlay').classList.add('hidden');
+        });
+
+        // Close sidebar on navigation link click (mobile only)
+        document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 1024) {
+                    document.getElementById('sidebar').classList.add('-translate-x-full');
+                    document.getElementById('sidebar-overlay').classList.add('hidden');
+                }
+            });
+        });
+    </script>
 
     <!-- Service Worker Registration -->
     <script>

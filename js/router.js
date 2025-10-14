@@ -7,7 +7,7 @@
 
 const router = {
     // Current active page
-    currentPage: 'home',
+    currentPage: null,
 
     /**
      * Initialize the router
