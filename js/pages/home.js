@@ -3,14 +3,11 @@
  * Handles the dashboard/home page functionality
  */
 
-console.log('Home.js loaded - defining loadHomePage');
-
 /**
  * Load and display home page data
  */
 async function loadHomePage() {
     try {
-        console.log('loadHomePage called');
         // Update statistics
         await updateStats();
 
@@ -27,30 +24,19 @@ async function loadHomePage() {
  */
 async function updateStats() {
     try {
-        console.log('updateStats called');
         const stats = await dbHelpers.getStats();
-        console.log('Stats from DB:', stats);
 
         const ropersStat = document.getElementById('stat-ropers');
         const eventsStat = document.getElementById('stat-events');
         const runsStat = document.getElementById('stat-runs');
 
-        console.log('DOM elements found:', {
-            ropers: !!ropersStat,
-            events: !!eventsStat,
-            runs: !!runsStat
-        });
-
         if (ropersStat) {
-            console.log('Setting ropers to', stats.ropers);
             ropersStat.textContent = stats.ropers;
         }
         if (eventsStat) {
-            console.log('Setting events to', stats.events);
             eventsStat.textContent = stats.events;
         }
         if (runsStat) {
-            console.log('Setting runs to', stats.runs);
             runsStat.textContent = stats.runs;
         }
 
@@ -74,8 +60,6 @@ async function updateStats() {
                 }
             }
         }
-
-        console.log('updateStats complete');
     } catch (error) {
         console.error('Error updating stats:', error);
     }
@@ -130,5 +114,3 @@ window.addEventListener('pageload', (e) => {
 // Export functions so they can be called from other pages and the router
 window.loadHomePage = loadHomePage;
 window.updateStats = updateStats;
-
-console.log('Home page script loaded - window.loadHomePage is', typeof window.loadHomePage);

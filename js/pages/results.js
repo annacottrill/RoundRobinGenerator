@@ -141,18 +141,18 @@ async function displayResults(eventId) {
                     <span class="inline-block w-4 h-4 rounded-full bg-blue-600"></span>
                     Header Rankings
                 </h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm">
+                <div class="overflow-x-auto -mx-3 sm:mx-0">
+                    <table class="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm text-xs sm:text-base">
                         <thead>
                             <tr class="bg-blue-100">
-                                <th class="border border-blue-200 p-3 text-left">Rank</th>
-                                <th class="border border-blue-200 p-3 text-left">Name</th>
-                                <th class="border border-blue-200 p-3 text-center">Runs</th>
-                                <th class="border border-blue-200 p-3 text-center">Catches</th>
-                                <th class="border border-blue-200 p-3 text-center">No Times</th>
-                                <th class="border border-blue-200 p-3 text-center">Total Time</th>
-                                <th class="border border-blue-200 p-3 text-center">Avg Time</th>
-                                <th class="border border-blue-200 p-3 text-center">Best Time</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-left">Rank</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-left">Name</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Runs</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Catch</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">NT</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Total</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Avg</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Best</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -187,14 +187,14 @@ async function displayResults(eventId) {
 
                                 return `
                                     <tr class="${actualRank <= 3 && header.catches > 0 ? 'bg-blue-50 font-semibold' : ''}">
-                                        <td class="border border-blue-200 p-3 text-center">${rankBadge}</td>
-                                        <td class="border border-blue-200 p-3">${header.name}</td>
-                                        <td class="border border-blue-200 p-3 text-center font-bold text-gray-700">${header.totalRuns}</td>
-                                        <td class="border border-blue-200 p-3 text-center font-bold text-green-600">${header.catches}</td>
-                                        <td class="border border-blue-200 p-3 text-center ${header.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${header.noTimes}</td>
-                                        <td class="border border-blue-200 p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</td>
-                                        <td class="border border-blue-200 p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</td>
-                                        <td class="border border-blue-200 p-3 text-center font-mono">${header.bestTime ? app.formatTime(header.bestTime) + 's' : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center">${rankBadge}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3">${header.name}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-bold text-gray-700">${header.totalRuns}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-bold text-green-600">${header.catches}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center ${header.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${header.noTimes}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.bestTime ? app.formatTime(header.bestTime) + 's' : '—'}</td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -211,18 +211,18 @@ async function displayResults(eventId) {
                     <span class="inline-block w-4 h-4 rounded-full bg-green-600"></span>
                     Heeler Rankings
                 </h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm">
+                <div class="overflow-x-auto -mx-3 sm:mx-0">
+                    <table class="w-full border-collapse bg-white rounded-lg overflow-hidden shadow-sm text-xs sm:text-base">
                         <thead>
                             <tr class="bg-green-100">
-                                <th class="border border-green-200 p-3 text-left">Rank</th>
-                                <th class="border border-green-200 p-3 text-left">Name</th>
-                                <th class="border border-green-200 p-3 text-center">Runs</th>
-                                <th class="border border-green-200 p-3 text-center">Catches</th>
-                                <th class="border border-green-200 p-3 text-center">No Times</th>
-                                <th class="border border-green-200 p-3 text-center">Total Time</th>
-                                <th class="border border-green-200 p-3 text-center">Avg Time</th>
-                                <th class="border border-green-200 p-3 text-center">Best Time</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-left">Rank</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-left">Name</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">Runs</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">Catch</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">NT</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">Total</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">Avg</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">Best</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -257,14 +257,14 @@ async function displayResults(eventId) {
 
                                 return `
                                     <tr class="${actualRank <= 3 && heeler.catches > 0 ? 'bg-green-50 font-semibold' : ''}">
-                                        <td class="border border-green-200 p-3 text-center">${rankBadge}</td>
-                                        <td class="border border-green-200 p-3">${heeler.name}</td>
-                                        <td class="border border-green-200 p-3 text-center font-bold text-gray-700">${heeler.totalRuns}</td>
-                                        <td class="border border-green-200 p-3 text-center font-bold text-green-600">${heeler.catches}</td>
-                                        <td class="border border-green-200 p-3 text-center ${heeler.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${heeler.noTimes}</td>
-                                        <td class="border border-green-200 p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</td>
-                                        <td class="border border-green-200 p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</td>
-                                        <td class="border border-green-200 p-3 text-center font-mono">${heeler.bestTime ? app.formatTime(heeler.bestTime) + 's' : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center">${rankBadge}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3">${heeler.name}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-bold text-gray-700">${heeler.totalRuns}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-bold text-green-600">${heeler.catches}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center ${heeler.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${heeler.noTimes}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.bestTime ? app.formatTime(heeler.bestTime) + 's' : '—'}</td>
                                     </tr>
                                 `;
                             }).join('')}

@@ -485,14 +485,14 @@ async function loadEventForModification(eventId) {
 
         modifyPenaltiesList.innerHTML = eventPenalties.map(penalty => {
             return `
-                <div class="penalty-item flex gap-2 items-center">
-                    <input type="text" class="penalty-name flex-1 px-3 py-2 border rounded-lg"
-                           placeholder="Penalty name" value="${penalty.name}">
-                    <input type="number" class="penalty-seconds w-24 px-3 py-2 border rounded-lg"
-                           placeholder="Seconds" value="${penalty.seconds}" min="0" step="0.01">
+                <div class="penalty-item flex gap-1 sm:gap-2 items-center">
+                    <input type="text" class="penalty-name flex-1 px-2 sm:px-3 py-2 border rounded-lg text-sm"
+                           placeholder="Penalty" value="${penalty.name}">
+                    <input type="number" class="penalty-seconds w-16 sm:w-24 px-2 sm:px-3 py-2 border rounded-lg text-sm"
+                           placeholder="Sec" value="${penalty.seconds}" min="0" step="0.01">
                     <button type="button" onclick="removeModifyPenalty(this)"
-                            class="px-2 py-2 text-red-600 hover:text-red-800">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="px-1 sm:px-2 py-2 text-red-600 hover:text-red-800 flex-shrink-0">
+                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -876,12 +876,12 @@ function getPenalties() {
 function addModifyPenalty() {
     const penaltiesList = document.getElementById('modify-penalties-list');
     const penaltyItem = document.createElement('div');
-    penaltyItem.className = 'penalty-item flex gap-2 items-center';
+    penaltyItem.className = 'penalty-item flex gap-1 sm:gap-2 items-center';
     penaltyItem.innerHTML = `
-        <input type="text" class="penalty-name flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Penalty name">
-        <input type="number" class="penalty-seconds w-24 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Seconds" value="5" min="0" step="0.01">
-        <button type="button" onclick="removeModifyPenalty(this)" class="px-2 py-2 text-red-600 hover:text-red-800">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <input type="text" class="penalty-name flex-1 px-2 sm:px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Penalty">
+        <input type="number" class="penalty-seconds w-16 sm:w-24 px-2 sm:px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Sec" value="5" min="0" step="0.01">
+        <button type="button" onclick="removeModifyPenalty(this)" class="px-1 sm:px-2 py-2 text-red-600 hover:text-red-800 flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
             </svg>
         </button>

@@ -406,24 +406,17 @@ const app = {
 };
 
 // Initialize app when DOM is ready and all scripts are loaded
-console.log('app.js: document.readyState =', document.readyState);
-
-// Use a more reliable initialization approach
 function initializeApp() {
-    console.log('initializeApp() called');
     app.init().catch(err => console.error('Error during app initialization:', err));
 }
 
 // Check if we're already loaded
 if (document.readyState === 'complete') {
-    console.log('Document already complete, using setTimeout');
     // Use setTimeout to ensure all inline scripts have executed
     setTimeout(initializeApp, 0);
 } else if (document.readyState === 'interactive') {
-    console.log('Document interactive, waiting for load event');
     window.addEventListener('load', initializeApp);
 } else {
-    console.log('Document loading, waiting for load event');
     window.addEventListener('load', initializeApp);
 }
 
@@ -517,5 +510,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // Export functions to global scope
 window.showClearDataModal = showClearDataModal;
 window.hideClearDataModal = hideClearDataModal;
-
-console.log('App loaded');

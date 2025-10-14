@@ -6,8 +6,8 @@
  * static assets and Network First for dynamic content.
  */
 
-const CACHE_NAME = 'round-robin-roping-v10';
-const RUNTIME_CACHE = 'round-robin-roping-runtime-v10';
+const CACHE_NAME = 'round-robin-roping-v16';
+const RUNTIME_CACHE = 'round-robin-roping-runtime-v16';
 
 // Assets to cache on install (App Shell)
 const ASSETS_TO_CACHE = [
