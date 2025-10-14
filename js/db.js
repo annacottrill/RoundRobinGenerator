@@ -1,0 +1,368 @@
+/**
+ * Database Configuration using Dexie.js (IndexedDB wrapper)
+ *
+ * This file defines the database schema for the Round Robin Roping app.
+ * Three main tables: ropers, events, and runs
+ */
+
+// Initialize Dexie database
+const db = new Dexie('RoundRobinRopingDB');
+
+// Define database schema
+// Version 1 of the database
+db.version(1).stores({
+    // Ropers table: stores information about individual ropers
+    // Primary key: id (auto-incremented)
+    // Indexes: name, position for faster queries
+    ropers: '++id, name, position, skillLevel',
+
+    // Events table: stores roping events
+    // Primary key: id (auto-incremented)
+    // Indexes: name, date for sorting and filtering
+    events: '++id, name, date, createdAt',
+
+    // Runs table: stores individual team runs/times
+    // Primary key: id (auto-incremented)
+    // Indexes: eventId for filtering by event, time for sorting results
+    runs: '++id, eventId, headerId, heelerId, time, round'
+});
+
+/**
+ * Database Helper Functions
+ * These functions provide a clean API for CRUD operations
+ */
+
+const dbHelpers = {
+    // ==================== ROPERS ====================
+
+    /**
+     * Add a new roper to the database
+     * @param {Object} roper - Roper object with name, position, skillLevel
+     * @returns {Promise<number>} - ID of the newly added roper
+     */
+    async addRoper(roper) {
+        return await db.ropers.add({
+            name: roper.name,
+            position: roper.position, // 'header' or 'heeler'
+            skillLevel: roper.skillLevel, // 1-10
+            createdAt: new Date()
+        });
+    },
+
+    /**
+     * Get all ropers from the database
+     * @returns {Promise<Array>} - Array of all ropers
+     */
+    async getAllRopers() {
+        return await db.ropers.toArray();
+    },
+
+    /**
+     * Get ropers filtered by position
+     * @param {string} position - 'header' or 'heeler'
+     * @returns {Promise<Array>} - Array of ropers matching position
+     */
+    async getRopersByPosition(position) {
+        return await db.ropers.where('position').equals(position).toArray();
+    },
+
+    /**
+     * Update a roper's information
+     * @param {number} id - Roper ID
+     * @param {Object} updates - Object with fields to update
+     * @returns {Promise<number>} - Number of records updated
+     */
+    async updateRoper(id, updates) {
+        return await db.ropers.update(id, updates);
+    },
+
+    /**
+     * Delete a roper
+     * @param {number} id - Roper ID
+     * @returns {Promise<void>}
+     */
+    async deleteRoper(id) {
+        return await db.ropers.delete(id);
+    },
+
+    /**
+     * Get a single roper by ID
+     * @param {number} id - Roper ID
+     * @returns {Promise<Object>} - Roper object
+     */
+    async getRoper(id) {
+        return await db.ropers.get(id);
+    },
+
+    // ==================== EVENTS ====================
+
+    /**
+     * Create a new event with team pairings
+     * @param {Object} event - Event object with name, date, and roperIds array
+     * @returns {Promise<number>} - ID of the newly created event
+     */
+    async createEvent(event) {
+        const eventId = await db.events.add({
+            name: event.name,
+            date: event.date,
+            roperIds: event.roperIds, // Array of participating roper IDs
+            pairings: event.pairings, // Array of team pairings [{headerId, heelerId, round}]
+            createdAt: new Date(),
+            status: 'active' // 'active' or 'completed'
+        });
+
+        // Create run records for each pairing
+        if (event.pairings && event.pairings.length > 0) {
+            const runs = event.pairings.map(pairing => ({
+                eventId: eventId,
+                headerId: pairing.headerId,
+                heelerId: pairing.heelerId,
+                round: pairing.round,
+                time: null, // Time will be recorded later
+                completed: false
+            }));
+
+            await db.runs.bulkAdd(runs);
+        }
+
+        return eventId;
+    },
+
+    /**
+     * Get all events
+     * @returns {Promise<Array>} - Array of all events, sorted by date (newest first)
+     */
+    async getAllEvents() {
+        return await db.events.orderBy('date').reverse().toArray();
+    },
+
+    /**
+     * Get a single event by ID
+     * @param {number} id - Event ID
+     * @returns {Promise<Object>} - Event object
+     */
+    async getEvent(id) {
+        return await db.events.get(id);
+    },
+
+    /**
+     * Update an event
+     * @param {number} id - Event ID
+     * @param {Object} updates - Object with fields to update
+     * @returns {Promise<number>} - Number of records updated
+     */
+    async updateEvent(id, updates) {
+        return await db.events.update(id, updates);
+    },
+
+    /**
+     * Delete an event and all associated runs
+     * @param {number} id - Event ID
+     * @returns {Promise<void>}
+     */
+    async deleteEvent(id) {
+        // Delete all runs for this event
+        await db.runs.where('eventId').equals(id).delete();
+        // Delete the event
+        return await db.events.delete(id);
+    },
+
+    // ==================== RUNS ====================
+
+    /**
+     * Record a time for a run
+     * @param {number} runId - Run ID
+     * @param {Object} timeData - Object with time, rawTime, penalties
+     * @returns {Promise<number>} - Number of records updated
+     */
+    async recordRunTime(runId, timeData) {
+        return await db.runs.update(runId, {
+            time: timeData.finalTime,
+            rawTime: timeData.rawTime,
+            penaltyOneLeg: timeData.penaltyOneLeg || false,
+            penaltyBarrier: timeData.penaltyBarrier || false,
+            completed: true,
+            recordedAt: new Date()
+        });
+    },
+
+    /**
+     * Get all runs for an event
+     * @param {number} eventId - Event ID
+     * @returns {Promise<Array>} - Array of runs for the event
+     */
+    async getRunsByEvent(eventId) {
+        return await db.runs.where('eventId').equals(eventId).toArray();
+    },
+
+    /**
+     * Get runs with full roper details (joins with ropers table)
+     * @param {number} eventId - Event ID
+     * @returns {Promise<Array>} - Array of runs with header and heeler names
+     */
+    async getRunsWithRopers(eventId) {
+        const runs = await db.runs.where('eventId').equals(eventId).toArray();
+
+        // Enhance each run with roper details
+        const enhancedRuns = await Promise.all(runs.map(async (run) => {
+            const header = await db.ropers.get(run.headerId);
+            const heeler = await db.ropers.get(run.heelerId);
+
+            return {
+                ...run,
+                headerName: header ? header.name : 'Unknown',
+                heelerName: heeler ? heeler.name : 'Unknown',
+                headerSkill: header ? header.skillLevel : 0,
+                heelerSkill: heeler ? heeler.skillLevel : 0
+            };
+        }));
+
+        return enhancedRuns;
+    },
+
+    /**
+     * Get results/standings for an event (sorted by time)
+     * @param {number} eventId - Event ID
+     * @returns {Promise<Array>} - Array of completed runs sorted by time
+     */
+    async getEventResults(eventId) {
+        const runsWithRopers = await this.getRunsWithRopers(eventId);
+
+        // Filter only completed runs and sort by time
+        return runsWithRopers
+            .filter(run => run.completed && run.time !== null)
+            .sort((a, b) => a.time - b.time);
+    },
+
+    /**
+     * Get individual roper statistics for an event
+     * @param {number} eventId - Event ID
+     * @returns {Promise<Object>} - Object with headers and heelers arrays
+     */
+    async getRoperStatistics(eventId) {
+        const runs = await this.getRunsWithRopers(eventId);
+
+        // Track stats for each roper
+        const headerStats = {};
+        const heelerStats = {};
+
+        runs.forEach(run => {
+            // Track header stats
+            if (!headerStats[run.headerId]) {
+                headerStats[run.headerId] = {
+                    id: run.headerId,
+                    name: run.headerName,
+                    skillLevel: run.headerSkill,
+                    catches: 0,
+                    noTimes: 0,
+                    totalRuns: 0,
+                    totalTime: 0,
+                    times: []
+                };
+            }
+
+            // Track heeler stats
+            if (!heelerStats[run.heelerId]) {
+                heelerStats[run.heelerId] = {
+                    id: run.heelerId,
+                    name: run.heelerName,
+                    skillLevel: run.heelerSkill,
+                    catches: 0,
+                    noTimes: 0,
+                    totalRuns: 0,
+                    totalTime: 0,
+                    times: []
+                };
+            }
+
+            if (run.completed) {
+                const isCatch = run.time !== null && run.time < 999999;
+
+                // Update header stats
+                headerStats[run.headerId].totalRuns++;
+                if (isCatch) {
+                    headerStats[run.headerId].catches++;
+                    headerStats[run.headerId].totalTime += run.time;
+                    headerStats[run.headerId].times.push(run.time);
+                } else {
+                    headerStats[run.headerId].noTimes++;
+                }
+
+                // Update heeler stats
+                heelerStats[run.heelerId].totalRuns++;
+                if (isCatch) {
+                    heelerStats[run.heelerId].catches++;
+                    heelerStats[run.heelerId].totalTime += run.time;
+                    heelerStats[run.heelerId].times.push(run.time);
+                } else {
+                    heelerStats[run.heelerId].noTimes++;
+                }
+            }
+        });
+
+        // Calculate averages and sort
+        const processStats = (stats) => {
+            return Object.values(stats).map(stat => ({
+                ...stat,
+                avgTime: stat.catches > 0 ? stat.totalTime / stat.catches : 999999,
+                bestTime: stat.times.length > 0 ? Math.min(...stat.times) : null
+            })).sort((a, b) => {
+                // Sort by catches (descending), then by average time (ascending)
+                if (b.catches !== a.catches) {
+                    return b.catches - a.catches;
+                }
+                return a.avgTime - b.avgTime;
+            });
+        };
+
+        return {
+            headers: processStats(headerStats),
+            heelers: processStats(heelerStats)
+        };
+    },
+
+    /**
+     * Delete a run
+     * @param {number} id - Run ID
+     * @returns {Promise<void>}
+     */
+    async deleteRun(id) {
+        return await db.runs.delete(id);
+    },
+
+    // ==================== STATISTICS ====================
+
+    /**
+     * Get database statistics for the dashboard
+     * @returns {Promise<Object>} - Object with counts
+     */
+    async getStats() {
+        const roperCount = await db.ropers.count();
+        const eventCount = await db.events.count();
+        const runCount = await db.runs.count();
+
+        return {
+            ropers: roperCount,
+            events: eventCount,
+            runs: runCount
+        };
+    },
+
+    // ==================== UTILITY ====================
+
+    /**
+     * Clear all data from the database (for testing/reset)
+     * @returns {Promise<void>}
+     */
+    async clearAllData() {
+        await db.ropers.clear();
+        await db.events.clear();
+        await db.runs.clear();
+    }
+};
+
+// Export the database and helper functions
+window.db = db;
+window.dbHelpers = dbHelpers;
+
+console.log('Database initialized successfully');

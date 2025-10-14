@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Team Roping Round Robin Event Manager">
+    <meta name="theme-color" content="#2563eb">
+    <title>Round Robin Roping</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Dexie.js for IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+
+    <style>
+        /* Custom styles for page transitions and active states */
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .nav-link.active {
+            background-color: #2563eb;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Main App Container -->
+    <div id="app" class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-blue-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <h1 class="text-2xl font-bold">Team Roping Round Robin</h1>
+                <p class="text-blue-100 text-sm">Offline-Ready Event Manager</p>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white shadow-md sticky top-0 z-10">
+            <div class="container mx-auto px-4">
+                <ul class="flex overflow-x-auto space-x-2 py-2">
+                    <li>
+                        <a href="#home" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="home">
+                            Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#ropers" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="ropers">
+                            Manage Ropers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#events" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="events">
+                            Create Event
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#record" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="record">
+                            Record Times
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#results" class="nav-link px-4 py-2 rounded-lg hover:bg-gray-100 inline-block whitespace-nowrap" data-page="results">
+                            View Results
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow container mx-auto px-4 py-6">
+
+            <!-- Home Page -->
+            <div id="page-home" class="page active">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Welcome to Round Robin Roping</h2>
+                        <p class="text-gray-600 mb-4">
+                            Manage your team roping events with ease. This app works completely offline after the initial load.
+                        </p>
+
+                        <!-- Stats Dashboard -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <div class="bg-blue-50 p-4 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
+                                 onclick="router.navigate('ropers');">
+                                <h3 class="text-lg font-semibold text-blue-800">Total Ropers</h3>
+                                <p id="stat-ropers" class="text-3xl font-bold text-blue-600">0</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded-lg hover:bg-green-100 cursor-pointer transition-colors"
+                                 onclick="router.navigate('events');">
+                                <h3 class="text-lg font-semibold text-green-800">Active Events</h3>
+                                <p id="stat-events" class="text-3xl font-bold text-green-600">0</p>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors"
+                                 onclick="router.navigate('record');">
+                                <h3 class="text-lg font-semibold text-purple-800">Total Runs</h3>
+                                <p id="stat-runs" class="text-3xl font-bold text-purple-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Events -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Events</h3>
+                        <div id="recent-events" class="space-y-2">
+                            <p class="text-gray-500 italic">No events yet. Create your first event!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Ropers Page -->
+            <div id="page-ropers" class="page">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Ropers</h2>
+
+                        <!-- Add Roper Form -->
+                        <form id="add-roper-form" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 class="font-semibold mb-3">Add New Roper</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Name</label>
+                                    <input type="text" id="roper-name" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Position</label>
+                                    <select id="roper-position" required
+                                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                        <option value="">Select...</option>
+                                        <option value="header">Header</option>
+                                        <option value="heeler">Heeler</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Skill Level (1-10)</label>
+                                    <input type="number" id="roper-skill" min="1" max="10" value="5" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <button type="submit"
+                                    class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                Add Roper
+                            </button>
+                        </form>
+
+                        <!-- Ropers List -->
+                        <div>
+                            <h3 class="font-semibold mb-3">All Ropers</h3>
+                            <div id="ropers-list" class="space-y-2">
+                                <p class="text-gray-500 italic">No ropers added yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Event Page -->
+            <div id="page-events" class="page">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Create Event & Generate Pairings</h2>
+
+                        <!-- Create Event Form -->
+                        <form id="create-event-form" class="mb-6 p-4 bg-gray-50 rounded-lg">
+                            <h3 class="font-semibold mb-3">Event Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Event Name</label>
+                                    <input type="text" id="event-name" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1">Date</label>
+                                    <input type="date" id="event-date" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+
+                            <!-- Select Ropers -->
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-3">Select Participating Ropers</label>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Headers Section -->
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                            <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                                            Headers
+                                        </h4>
+                                        <div id="event-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
+                                            <p class="text-gray-500 italic text-sm">No headers available</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Heelers Section -->
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                                            <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
+                                            Heelers
+                                        </h4>
+                                        <div id="event-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
+                                            <p class="text-gray-500 italic text-sm">No heelers available</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                                Create Event & Generate Pairings
+                            </button>
+                        </form>
+
+                        <!-- Generated Pairings -->
+                        <div id="pairings-section" class="hidden">
+                            <h3 class="font-semibold mb-3">Generated Pairings</h3>
+                            <div id="pairings-list" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Manage Existing Events -->
+                        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                            <h3 class="font-semibold mb-3">Manage Existing Events</h3>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2">Select Event to Modify</label>
+                                <select id="modify-event-select"
+                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Choose an event...</option>
+                                </select>
+                            </div>
+
+                            <!-- Event Modification Section -->
+                            <div id="modify-event-section" class="hidden">
+                                <div class="mb-4 p-3 bg-white rounded-lg border">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="font-semibold" id="modify-event-name"></h4>
+                                            <p class="text-sm text-gray-600" id="modify-event-date"></p>
+                                        </div>
+                                        <span id="modify-event-status-badge" class="inline-block px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                                            Active
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 pt-3 border-t">
+                                        <button id="toggle-event-status-btn" onclick="toggleEventStatus()"
+                                                class="text-sm px-4 py-2 rounded-lg bg-gray-600 text-white hover:bg-gray-700">
+                                            Mark as Completed
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="event-modification-controls" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <!-- Modify Headers Section -->
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                                            <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                                            Headers
+                                        </h4>
+                                        <div id="modify-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
+                                            <p class="text-gray-500 italic text-sm">No headers available</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Modify Heelers Section -->
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                                            <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
+                                            Heelers
+                                        </h4>
+                                        <div id="modify-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
+                                            <p class="text-gray-500 italic text-sm">No heelers available</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="event-edit-buttons" class="flex gap-3">
+                                    <button onclick="updateEventRopers()"
+                                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                                        Update & Regenerate Pairings
+                                    </button>
+                                    <button onclick="cancelModifyEvent()"
+                                            class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600">
+                                        Cancel
+                                    </button>
+                                </div>
+
+                                <div id="event-edit-warning" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p class="text-sm text-yellow-800">
+                                        <strong>Note:</strong> Updating ropers will regenerate all pairings and delete any recorded times for this event.
+                                    </p>
+                                </div>
+
+                                <div id="event-completed-message" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <p class="text-sm text-green-800">
+                                        <strong>✓ Event Completed:</strong> This event is marked as completed. It cannot be modified or have new times recorded. Mark as active to make changes.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Record Times Page -->
+            <div id="page-record" class="page">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Record Times</h2>
+
+                        <!-- Select Event -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Select Event</label>
+                            <select id="record-event-select"
+                                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Choose an event...</option>
+                            </select>
+                        </div>
+
+                        <!-- Teams List -->
+                        <div id="record-teams-section" class="hidden">
+                            <h3 class="font-semibold mb-3">Teams</h3>
+                            <div id="record-teams-list" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Results Page -->
+            <div id="page-results" class="page">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">View Results</h2>
+
+                        <!-- Select Event -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2">Select Event</label>
+                            <select id="results-event-select"
+                                    class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Choose an event...</option>
+                            </select>
+                        </div>
+
+                        <!-- Results Container -->
+                        <div id="results-section" class="hidden">
+                            <div id="results-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-800 text-white py-4 mt-6">
+            <div class="container mx-auto px-4 text-center">
+                <p class="text-sm">
+                    <span id="online-status" class="inline-block w-2 h-2 rounded-full bg-green-500 mr-2"></span>
+                    <span id="status-text">Online</span>
+                </p>
+                <p class="text-xs text-gray-400 mt-2">PWA Version 1.0</p>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3" id="confirm-modal-title">Confirm Action</h3>
+            <p class="text-gray-600 mb-6" id="confirm-modal-message">Are you sure?</p>
+            <div class="flex gap-3 justify-end">
+                <button id="confirm-modal-cancel"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    Cancel
+                </button>
+                <button id="confirm-modal-confirm"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/db.js"></script>
+    <script src="js/router.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pages/home.js"></script>
+    <script src="js/pages/ropers.js"></script>
+    <script src="js/pages/events.js"></script>
+    <script src="js/pages/record.js"></script>
+    <script src="js/pages/results.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered', reg))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+    </script>
+</body>
+</html>

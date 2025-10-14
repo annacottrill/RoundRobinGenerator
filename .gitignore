@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Development
+.DS_Store
+Thumbs.db
+*.log
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Build/Distribution (if you add a build step later)
+dist/
+build/
+
+# Environment variables (if you add them later)
+.env
+.env.local
+
+# Screenshot placeholders (optional)
+screenshots/
