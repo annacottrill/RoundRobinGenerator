@@ -37,6 +37,81 @@
             background-color: #2563eb;
             color: white;
         }
+
+        /* Tooltip styles */
+        .tooltip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: help;
+        }
+
+        /* Hide the inline tooltip text (JavaScript will read and display it) */
+        .tooltip .tooltip-text {
+            display: none;
+        }
+
+        /* Tooltip container that will be appended to body */
+        .tooltip-container {
+            position: fixed;
+            width: 280px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px 12px;
+            z-index: 999999;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+            --arrow-direction: right;
+        }
+
+        .tooltip-container.visible {
+            opacity: 1;
+        }
+
+        /* Arrow pointing left (tooltip is on the right of icon) */
+        .tooltip-container::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            margin-top: -5px;
+            border-width: 5px;
+            border-style: solid;
+        }
+
+        /* Default: arrow on left pointing right */
+        .tooltip-container::after {
+            left: -5px;
+            border-color: transparent #1f2937 transparent transparent;
+        }
+
+        /* When tooltip is on left side of icon, arrow points left */
+        .tooltip-container[style*="--arrow-direction: left"]::after {
+            left: auto;
+            right: -5px;
+            border-color: transparent transparent transparent #1f2937;
+        }
+
+        @media (max-width: 640px) {
+            .tooltip-container {
+                width: 200px;
+                font-size: 0.8125rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .tooltip-container {
+                width: 180px;
+                font-size: 0.75rem;
+                padding: 8px 10px;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-50 overflow-x-hidden">
@@ -82,7 +157,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                             </svg>
-                            <span>Create Event</span>
+                            <span>Manage Events</span>
                         </a>
                     </li>
                     <li>
@@ -99,6 +174,14 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                             </svg>
                             <span>View Results</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#help" class="nav-link flex items-center gap-3 px-4 py-3 hover:bg-blue-700 transition-colors" data-page="help">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Help</span>
                         </a>
                     </li>
                 </ul>
@@ -174,7 +257,7 @@
                                 <p id="stat-events" class="text-3xl font-bold text-green-600 mb-3">—</p>
                                 <button onclick="router.navigate('events');"
                                         class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                                    Create Event
+                                    Manage Events
                                 </button>
                             </div>
                             <div class="bg-purple-50 p-4 rounded-lg transition-colors">
@@ -219,7 +302,15 @@
 
                         <!-- Add Roper Form -->
                         <form id="add-roper-form" class="mb-6 p-4 bg-gray-50 rounded-lg">
-                            <h3 class="font-semibold mb-3">Add New Roper</h3>
+                            <h3 class="font-semibold mb-3 flex items-center gap-2">
+                                Add New Roper
+                                <span class="tooltip">
+                                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip-text">Add ropers who will participate in your events. Each roper needs a name, position (Header or Heeler), and skill level (1-10). You cannot add two ropers with the same name in the same position.</span>
+                                </span>
+                            </h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Name</label>
@@ -229,7 +320,7 @@
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Position</label>
                                     <select id="roper-position" required
-                                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
                                             style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                         <option value="">Select...</option>
                                         <option value="header">Header</option>
@@ -263,7 +354,7 @@
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Position</label>
                                     <select id="edit-roper-position" required
-                                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
                                             style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
                                         <option value="header">Header</option>
                                         <option value="heeler">Heeler</option>
@@ -303,15 +394,32 @@
                 </div>
             </div>
 
-            <!-- Create Event Page -->
+            <!-- Manage Events Page -->
             <div id="page-events" class="page">
                 <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-lg shadow-md p-3 sm:p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Create Event & Generate Teams</h2>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-6">Manage Events</h2>
 
-                        <!-- Create Event Form -->
-                        <form id="create-event-form" class="mb-6 p-2 sm:p-4 bg-gray-50 rounded-lg">
-                            <h3 class="font-semibold mb-3 text-base sm:text-lg">Event Details</h3>
+                        <!-- Create New Event Section -->
+                        <div class="mb-8 border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                            <h3 class="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Create New Event
+                            </h3>
+
+                            <!-- Create Event Form -->
+                            <form id="create-event-form" class="p-2 sm:p-4 bg-white rounded-lg">
+                                <h4 class="font-semibold mb-3 text-base sm:text-lg flex items-center gap-2">
+                                    Event Details
+                                <span class="tooltip">
+                                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip-text">Create a new roping event by entering the event name and date. You'll then select which ropers will participate.</span>
+                                </span>
+                            </h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Event Name</label>
@@ -328,7 +436,15 @@
                             <!-- Penalties Section -->
                             <div class="mb-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
                                 <div class="flex justify-between items-center mb-3">
-                                    <label class="block text-sm font-medium">Penalties</label>
+                                    <label class="block text-sm font-medium flex items-center gap-2">
+                                        Penalties
+                                        <span class="tooltip">
+                                            <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="tooltip-text">Define penalties that can be applied during runs (e.g., "One Leg" for 5 seconds, "Barrier" for 5 seconds). These will be automatically added to times when penalties occur.</span>
+                                        </span>
+                                    </label>
                                     <button type="button" onclick="addPenalty()"
                                             class="text-xs sm:text-sm px-2 sm:px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">
                                         + Add
@@ -359,42 +475,75 @@
 
                             <!-- Select Ropers -->
                             <div class="mb-4">
-                                <label class="block text-sm font-medium mb-3">Select Participating Ropers</label>
+                                <label class="block text-sm font-medium mb-3 flex items-center gap-2">
+                                    Select Participating Ropers
+                                    <span class="tooltip">
+                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="tooltip-text">Select which ropers will participate in this event. The app will automatically generate round robin teams (every header paired with every heeler). Use the search box to find ropers quickly in large lists.</span>
+                                    </span>
+                                </label>
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <!-- Headers Section -->
                                     <div>
-                                        <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                            <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
-                                            Headers
-                                        </h4>
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h4 class="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                                                <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                                                Headers
+                                            </h4>
+                                            <span id="header-count" class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                                0 selected
+                                            </span>
+                                        </div>
                                         <input type="text" id="event-headers-search" placeholder="Search headers..."
                                                class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                                        <div id="event-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
+                                        <div id="event-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-80 overflow-y-auto space-y-1" style="max-height: 400px;">
                                             <p class="text-gray-500 italic text-sm">No headers available</p>
                                         </div>
+                                        <button type="button" onclick="openAddRoperModal('header')"
+                                                class="mt-2 w-full px-3 py-2 text-sm bg-blue-100 text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                            Add Header
+                                        </button>
                                     </div>
 
                                     <!-- Heelers Section -->
                                     <div>
-                                        <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                                            <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
-                                            Heelers
-                                        </h4>
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h4 class="text-sm font-semibold text-green-800 flex items-center gap-2">
+                                                <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
+                                                Heelers
+                                            </h4>
+                                            <span id="heeler-count" class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                                0 selected
+                                            </span>
+                                        </div>
                                         <input type="text" id="event-heelers-search" placeholder="Search heelers..."
                                                class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
-                                        <div id="event-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
+                                        <div id="event-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-80 overflow-y-auto space-y-1" style="max-height: 400px;">
                                             <p class="text-gray-500 italic text-sm">No heelers available</p>
                                         </div>
+                                        <button type="button" onclick="openAddRoperModal('heeler')"
+                                                class="mt-2 w-full px-3 py-2 text-sm bg-green-100 text-green-800 border border-green-300 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center gap-2">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                            </svg>
+                                            Add Heeler
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <button type="submit"
-                                    class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                                Create Event & Generate Teams
-                            </button>
-                        </form>
+                                <button type="submit"
+                                        class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    Generate Event
+                                </button>
+                            </form>
+                        </div>
 
                         <!-- Generated Teams -->
                         <div id="pairings-section" class="hidden">
@@ -409,8 +558,19 @@
                         </div>
 
                         <!-- Manage Existing Events -->
-                        <div class="mt-8 p-4 bg-gray-50 rounded-lg">
-                            <h3 class="font-semibold mb-3">Manage Existing Events</h3>
+                        <div class="mt-8 border-2 border-gray-300 rounded-lg p-4 bg-gray-50">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Manage Existing Events
+                                <span class="tooltip">
+                                    <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="tooltip-text">Edit existing events to change name, date, penalties, or participating ropers. Warning: Changing ropers or penalties will regenerate teams and delete all recorded times.</span>
+                                </span>
+                            </h3>
                             <div class="mb-4">
                                 <label class="block text-sm font-medium mb-2">Select Event to Modify</label>
                                 <select id="modify-event-select"
@@ -493,30 +653,48 @@
                                             <div id="event-modification-controls" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <!-- Modify Headers Section -->
                                             <div>
-                                                <h4 class="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-2">
-                                                    <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
-                                                    Headers
-                                                </h4>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <h4 class="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                                                        <span class="inline-block w-3 h-3 rounded-full bg-blue-600"></span>
+                                                        Headers
+                                                    </h4>
+                                                    <span id="modify-header-count" class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                                                        0 selected
+                                                    </span>
+                                                </div>
                                                 <input type="text" id="modify-headers-search"
                                                        placeholder="Search headers..."
                                                        class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
-                                                <div id="modify-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-60 overflow-y-auto space-y-1">
+                                                <div id="modify-headers-selection" class="border rounded-lg p-3 bg-blue-50 max-h-80 overflow-y-auto space-y-1" style="max-height: 400px;">
                                                     <p class="text-gray-500 italic text-sm">No headers available</p>
                                                 </div>
+                                                <button type="button" onclick="openAddRoperModal('header', 'modify')"
+                                                        class="mt-2 w-full px-3 py-2 text-sm bg-blue-100 text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors">
+                                                    + Add Header
+                                                </button>
                                             </div>
 
                                             <!-- Modify Heelers Section -->
                                             <div>
-                                                <h4 class="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                                                    <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
-                                                    Heelers
-                                                </h4>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <h4 class="text-sm font-semibold text-green-800 flex items-center gap-2">
+                                                        <span class="inline-block w-3 h-3 rounded-full bg-green-600"></span>
+                                                        Heelers
+                                                    </h4>
+                                                    <span id="modify-heeler-count" class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                                                        0 selected
+                                                    </span>
+                                                </div>
                                                 <input type="text" id="modify-heelers-search"
                                                        placeholder="Search heelers..."
                                                        class="w-full px-3 py-2 mb-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500">
-                                                <div id="modify-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-60 overflow-y-auto space-y-1">
+                                                <div id="modify-heelers-selection" class="border rounded-lg p-3 bg-green-50 max-h-80 overflow-y-auto space-y-1" style="max-height: 400px;">
                                                     <p class="text-gray-500 italic text-sm">No heelers available</p>
                                                 </div>
+                                                <button type="button" onclick="openAddRoperModal('heeler', 'modify')"
+                                                        class="mt-2 w-full px-3 py-2 text-sm bg-green-100 text-green-800 border border-green-300 rounded-lg hover:bg-green-200 transition-colors">
+                                                    + Add Heeler
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -553,7 +731,15 @@
             <div id="page-record" class="page">
                 <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Record Times</h2>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            Record Times
+                            <span class="tooltip">
+                                <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="tooltip-text">Record run times for each team in your event. Enter the time in seconds (e.g., 8.5 for 8.5 seconds) and check penalty boxes if applicable. Times are automatically sorted fastest to slowest in results.</span>
+                            </span>
+                        </h2>
 
                         <!-- Select Event -->
                         <div class="mb-6">
@@ -584,7 +770,15 @@
             <div id="page-results" class="page">
                 <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-lg shadow-md p-3 sm:p-6">
-                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4">View Results</h2>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            View Results
+                            <span class="tooltip">
+                                <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="tooltip-text">View event standings and statistics. Results show teams ranked by total time (sum of all runs), average times, and individual roper performance. Click team names to see detailed run breakdowns.</span>
+                            </span>
+                        </h2>
 
                         <!-- Select Event -->
                         <div class="mb-6">
@@ -599,6 +793,364 @@
                         <!-- Results Container -->
                         <div id="results-section" class="hidden">
                             <div id="results-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Page -->
+            <div id="page-help" class="page">
+                <div class="max-w-5xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">How to Use Round Robin Roping</h2>
+                        <p class="text-gray-600 mb-6">A complete guide to managing your team roping events from start to finish</p>
+
+                        <!-- What is Round Robin -->
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                            <h3 class="font-bold text-lg mb-2 text-blue-900">What is Round Robin Format?</h3>
+                            <p class="text-gray-700">
+                                Round Robin means every header will be paired with every heeler exactly once. This ensures fair competition and allows everyone to rope with each other. The app automatically generates all team pairings and tracks their performance throughout the event.
+                            </p>
+                        </div>
+
+                        <!-- Complete Workflow -->
+                        <div class="mb-6 border border-gray-300 rounded-lg overflow-hidden">
+                            <button onclick="toggleHelpSection('workflow')" class="w-full text-left px-5 py-4 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-between">
+                                <h3 class="text-2xl font-bold text-gray-800">Complete Workflow: Start to Finish</h3>
+                                <svg id="workflow-icon" class="w-6 h-6 text-gray-600 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="workflow-content" class="hidden p-5 border-t border-gray-300">
+
+                            <!-- Step 1: Add Ropers -->
+                            <div class="mb-6 bg-gray-50 rounded-lg p-5">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">1</span>
+                                    <div class="flex-1">
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Add Ropers</h4>
+                                        <p class="text-sm text-gray-600 mb-3">First, add all participants who will be roping at your event.</p>
+
+                                        <div class="bg-white p-4 rounded border border-gray-200">
+                                            <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
+                                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
+                                                <li>Click <a href="#ropers" onclick="router.navigate('ropers')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Manage Ropers"</a> in the navigation menu</li>
+                                                <li>In the "Add New Roper" section, enter the roper's name</li>
+                                                <li>Select their position: <span class="font-semibold">Header</span> or <span class="font-semibold">Heeler</span></li>
+                                                <li>Set their skill level (1-10) to help you remember their experience</li>
+                                                <li>Click <span class="font-semibold">"Add Roper"</span></li>
+                                                <li>Repeat for all participants</li>
+                                            </ol>
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-500"><strong>Note:</strong> You cannot add two ropers with the same name in the same position. Skill levels are for reference only and don't affect team generation.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 2: Create Event -->
+                            <div class="mb-6 bg-gray-50 rounded-lg p-5">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">2</span>
+                                    <div class="flex-1">
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Create Event</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Set up your event details and select which ropers will participate.</p>
+
+                                        <div class="bg-white p-4 rounded border border-gray-200">
+                                            <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
+                                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
+                                                <li>Click <a href="#events" onclick="router.navigate('events')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Manage Events"</a> in the navigation menu</li>
+                                                <li>Enter an event name (e.g., "Saturday Morning Roping")</li>
+                                                <li>Optionally set the event date</li>
+                                                <li>Configure penalties if needed (One Leg, Barrier, etc.) - these add seconds to run times</li>
+                                                <li>In the "Select Ropers" section, check the boxes for headers who will participate
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li>Use the search box to quickly find ropers</li>
+                                                        <li>Click "Select All" to choose all headers at once</li>
+                                                        <li>Click "Add Header" to quickly add a new roper without leaving the page</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Repeat for heelers - select which heelers will participate</li>
+                                                <li>Review the counter badges showing how many headers and heelers are selected</li>
+                                                <li>Click <span class="font-semibold">"Generate Event"</span></li>
+                                                <li>The app will automatically create all team pairings (every header with every heeler)</li>
+                                            </ol>
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-500"><strong>Tip:</strong> You need at least one header and one heeler to create an event. With 3 headers and 4 heelers, you'll get 12 teams (3×4).</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 3: Record Times -->
+                            <div class="mb-6 bg-gray-50 rounded-lg p-5">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">3</span>
+                                    <div class="flex-1">
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Record Times</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Enter run times as teams complete their runs during the event.</p>
+
+                                        <div class="bg-white p-4 rounded border border-gray-200">
+                                            <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
+                                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
+                                                <li>Click <a href="#record" onclick="router.navigate('record')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Record Times"</a> in the navigation menu</li>
+                                                <li>Select your event from the dropdown</li>
+                                                <li>You'll see all teams that need to run, displayed as cards</li>
+                                                <li>For each team that completes a run:
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li>Enter the time in seconds (e.g., "8.5" for 8.5 seconds)</li>
+                                                        <li>Check any penalty boxes if applicable (the penalty seconds will be added automatically)</li>
+                                                        <li>Click "Save Time"</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Teams with recorded times will show their final time and penalties</li>
+                                                <li>Continue recording times as teams complete their runs</li>
+                                            </ol>
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-500"><strong>Note:</strong> You can edit times later by entering a new time and clicking "Save Time" again. The latest time always overwrites the previous one.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 4: View Results -->
+                            <div class="mb-6 bg-gray-50 rounded-lg p-5">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">4</span>
+                                    <div class="flex-1">
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">View Results</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Check standings, statistics, and individual roper performance.</p>
+
+                                        <div class="bg-white p-4 rounded border border-gray-200">
+                                            <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
+                                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
+                                                <li>Click <a href="#results" onclick="router.navigate('results')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"View Results"</a> in the navigation menu</li>
+                                                <li>Select your event from the dropdown</li>
+                                                <li>View the standings table showing:
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li>Team names (Header + Heeler)</li>
+                                                        <li>Total time (sum of all runs)</li>
+                                                        <li>Average time per run</li>
+                                                        <li>Number of runs completed</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Click on a team name to see detailed breakdown of each run with times and penalties</li>
+                                                <li>Scroll down to see individual roper statistics showing average performance</li>
+                                            </ol>
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-500"><strong>Note:</strong> Teams are ranked by total time (lowest is best). Results update in real-time as you record new times.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Step 5: Complete Event -->
+                            <div class="mb-6 bg-gray-50 rounded-lg p-5">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">5</span>
+                                    <div class="flex-1">
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Complete Event</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Mark the event as finished to keep your event list organized.</p>
+
+                                        <div class="bg-white p-4 rounded border border-gray-200">
+                                            <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
+                                            <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
+                                                <li>Stay on <a href="#results" onclick="router.navigate('results')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"View Results"</a> (or navigate there if you've left)</li>
+                                                <li>Make sure your event is selected in the dropdown</li>
+                                                <li>Once all runs are recorded, a green banner will appear at the top</li>
+                                                <li>Click the <span class="font-semibold">"Mark as Completed"</span> button in the banner</li>
+                                                <li>Completed events are preserved with all their data but moved to a "completed" state</li>
+                                            </ol>
+                                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                                <p class="text-xs text-gray-500"><strong>Alternative:</strong> You can also mark events as completed from the "Manage Events" page under "Manage Existing Events."</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Page-by-Page Reference -->
+                        <div class="mb-6 border border-gray-300 rounded-lg overflow-hidden">
+                            <button onclick="toggleHelpSection('pageguide')" class="w-full text-left px-5 py-4 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-between">
+                                <h3 class="text-2xl font-bold text-gray-800">Page Reference Guide</h3>
+                                <svg id="pageguide-icon" class="w-6 h-6 text-gray-600 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="pageguide-content" class="hidden p-5 border-t border-gray-300">
+
+                            <div class="space-y-4">
+                                <!-- Manage Ropers -->
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Manage Ropers</h4>
+                                    <p class="text-sm text-gray-600 mb-2">Your roper database. Add, edit, or remove participants.</p>
+                                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                                        <li><strong>Add Roper:</strong> Fill out the form and click "Add Roper"</li>
+                                        <li><strong>Edit Roper:</strong> Click the edit button on any roper, make changes, and save</li>
+                                        <li><strong>Delete Roper:</strong> Click the delete button (existing events won't be affected)</li>
+                                        <li><strong>View All Ropers:</strong> See complete list with position and skill level</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Manage Events -->
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Manage Events</h4>
+                                    <p class="text-sm text-gray-600 mb-2">Set up new events and manage existing ones.</p>
+                                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                                        <li><strong>Event Details:</strong> Name and optional date</li>
+                                        <li><strong>Penalties:</strong> Configure time penalties (One Leg, Barrier, etc.)</li>
+                                        <li><strong>Select Ropers:</strong> Choose participating headers and heelers with search, select all, and quick add features</li>
+                                        <li><strong>Generate Event:</strong> Creates all team pairings automatically</li>
+                                        <li><strong>Manage Existing:</strong> Edit or mark events as completed</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Record Times -->
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Record Times</h4>
+                                    <p class="text-sm text-gray-600 mb-2">Enter run times during the event.</p>
+                                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                                        <li><strong>Select Event:</strong> Choose which event you're recording for</li>
+                                        <li><strong>Team Cards:</strong> Each team is displayed as a card showing the header and heeler</li>
+                                        <li><strong>Enter Time:</strong> Input time in seconds (decimals allowed)</li>
+                                        <li><strong>Penalties:</strong> Check boxes for any penalties incurred</li>
+                                        <li><strong>Save:</strong> Click "Save Time" to record (can be updated later)</li>
+                                    </ul>
+                                </div>
+
+                                <!-- View Results -->
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">View Results</h4>
+                                    <p class="text-sm text-gray-600 mb-2">See standings and statistics.</p>
+                                    <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
+                                        <li><strong>Standings Table:</strong> Teams ranked by total time (lowest to highest)</li>
+                                        <li><strong>Team Details:</strong> Click team names to see run-by-run breakdown</li>
+                                        <li><strong>Individual Stats:</strong> View average performance for each roper</li>
+                                        <li><strong>Real-time Updates:</strong> Results refresh as new times are recorded</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- FAQs -->
+                        <div class="mb-6 border border-gray-300 rounded-lg overflow-hidden">
+                            <button onclick="toggleHelpSection('faqs')" class="w-full text-left px-5 py-4 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-between">
+                                <h3 class="text-2xl font-bold text-gray-800">Frequently Asked Questions</h3>
+                                <svg id="faqs-icon" class="w-6 h-6 text-gray-600 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="faqs-content" class="hidden p-5 border-t border-gray-300">
+                            <div class="space-y-3">
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">Can I edit an event after creating it?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Yes! Go to "Manage Events" and select the event from "Manage Existing Events." You can change the name, date, or penalties. <span class="font-semibold">Warning:</span> Changing participating ropers will regenerate all teams and delete recorded times.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">Does this work offline?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Yes! This is a Progressive Web App (PWA) that works completely offline after the initial load. All data is stored locally on your device using IndexedDB.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">Can I export my results?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Yes! Go to "View Results", select your event, and scroll to the bottom. Click the purple "Export to CSV" button to download a spreadsheet file with all team standings, times, and individual roper statistics. You can open this file in Excel, Google Sheets, or any spreadsheet program.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">Can I add a roper during event creation?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Yes! Click the "Add Header" or "Add Heeler" button below the selection lists. The new roper will be automatically selected for your event.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">How do I find ropers in a large list?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        Use the search boxes to quickly filter ropers by name. The roper selection areas show up to 10 ropers before scrolling kicks in, and the search works across all ropers.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">How do penalties work?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        When creating an event, you can configure penalties (e.g., One Leg = 5 seconds). When recording a run, check the penalty boxes and those seconds will be automatically added to the final time.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">Can I have duplicate roper names?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        You cannot add two ropers with the same name in the same position (e.g., two headers named "John"). However, you can have a header and heeler with the same name.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">I accidentally marked my event as completed. How do I reopen it?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        No problem! Go to "Manage Events" and select your completed event from "Manage Existing Events" (it will be in the "Completed Events" section of the dropdown). Once selected, click the "Mark as Active" button to reopen it. All your data will still be there.
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">What if I run out of storage or my data becomes unmanageable?</h4>
+                                    <p class="text-sm text-gray-600 mb-2">
+                                        If you're running low on storage space or your ropers/events list has become too cluttered, you can use the "Clear All Data" option in the navigation menu.
+                                    </p>
+                                    <div class="bg-red-50 p-2 rounded border-2 border-red-400 mb-2">
+                                        <p class="text-xs font-bold text-red-900 mb-1">⚠️ CRITICAL WARNING:</p>
+                                        <ul class="text-xs text-red-800 space-y-1 ml-4 list-disc">
+                                            <li><strong>This action is PERMANENT and CANNOT be undone</strong></li>
+                                            <li>ALL ropers will be deleted</li>
+                                            <li>ALL events (active and completed) will be deleted</li>
+                                            <li>ALL recorded times and results will be deleted</li>
+                                            <li>Your entire database will be wiped clean</li>
+                                        </ul>
+                                    </div>
+                                    <p class="text-xs text-gray-600 mb-2">
+                                        <strong>Before clearing:</strong> Make sure you've saved any important information elsewhere (screenshots, written notes, etc.). There is no backup or recovery option.
+                                    </p>
+                                    <p class="text-xs text-gray-600">
+                                        <strong>When to use:</strong> Use this only when starting fresh, running out of device storage, or when your data has become completely unmanageable. Consider marking old events as "Completed" instead if you just want to organize your active events.
+                                    </p>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Tips -->
+                        <div class="mb-6 border border-gray-300 rounded-lg overflow-hidden">
+                            <button onclick="toggleHelpSection('tips')" class="w-full text-left px-5 py-4 bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-between">
+                                <h3 class="text-2xl font-bold text-gray-800">Pro Tips</h3>
+                                <svg id="tips-icon" class="w-6 h-6 text-gray-600 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="tips-content" class="hidden p-5 border-t border-gray-300">
+                            <ul class="space-y-2 text-sm text-gray-700">
+                                <li><strong>•</strong> Use meaningful event names with dates (e.g., "Saturday June 15th Roping") to stay organized</li>
+                                <li><strong>•</strong> Set up all your ropers first, then create events - it's faster</li>
+                                <li><strong>•</strong> Click "Select All" when most ropers are participating, then uncheck the few who aren't</li>
+                                <li><strong>•</strong> Mark events as "Completed" when done to keep your active event list clean</li>
+                                <li><strong>•</strong> Skill levels are just for reference - they don't affect how teams are generated</li>
+                                <li><strong>•</strong> You can edit roper names or skill levels without affecting existing events</li>
+                                <li><strong>•</strong> Hover over the info icons throughout the app for quick help on any section</li>
+                                <li><strong>•</strong> The app works great on phones and tablets - perfect for arena use!</li>
+                            </ul>
+                            </div>
+                        </div>
+
+                        <!-- Need Help -->
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-bold text-lg mb-2">Still Have Questions?</h3>
+                            <p class="text-gray-700 text-sm">
+                                Look for the info icons throughout the app - hover over them for helpful tooltips explaining each section. The app is designed to be intuitive and guide you through each step of the process.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -638,6 +1190,56 @@
                     Confirm
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Add Roper Modal (for Events Page) -->
+    <div id="add-roper-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Quick Add Roper</h3>
+                <button onclick="closeAddRoperModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="add-roper-modal-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Name</label>
+                    <input type="text" id="modal-roper-name" required
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter roper name">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Position</label>
+                    <select id="modal-roper-position" required
+                            class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
+                        <option value="header">Header</option>
+                        <option value="heeler">Heeler</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Skill Level (1-10)</label>
+                    <input type="number" id="modal-roper-skill" min="1" max="10" value="5" required
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <p id="modal-roper-error" class="hidden text-sm text-red-600"></p>
+
+                <div class="flex gap-3 justify-end pt-2">
+                    <button type="button" onclick="closeAddRoperModal()"
+                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Add Roper
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -739,6 +1341,145 @@
                     .then(reg => console.log('Service Worker registered', reg))
                     .catch(err => console.log('Service Worker registration failed', err));
             });
+        }
+    </script>
+
+    <!-- Dynamic Tooltip Positioning -->
+    <script>
+        // Create a single tooltip container that will be reused
+        let tooltipContainer = null;
+        let currentTooltipIcon = null;
+
+        function createTooltipContainer() {
+            if (!tooltipContainer) {
+                tooltipContainer = document.createElement('div');
+                tooltipContainer.className = 'tooltip-container';
+                document.body.appendChild(tooltipContainer);
+            }
+            return tooltipContainer;
+        }
+
+        function positionTooltip(iconElement, text) {
+            const container = createTooltipContainer();
+            const rect = iconElement.getBoundingClientRect();
+
+            // Set the text
+            container.textContent = text;
+
+            // Responsive tooltip width based on screen size
+            let tooltipWidth;
+            if (window.innerWidth < 480) {
+                tooltipWidth = 180;
+            } else if (window.innerWidth < 640) {
+                tooltipWidth = 200;
+            } else {
+                tooltipWidth = 280;
+            }
+
+            // Position to the right of the icon with 10px gap
+            let left = rect.right + 10;
+
+            // Check if tooltip would go off right edge of screen
+            if (left + tooltipWidth > window.innerWidth - 10) {
+                // If not enough space on right, position to the left of icon
+                left = rect.left - tooltipWidth - 10;
+
+                // Update arrow to point right instead of left
+                container.style.setProperty('--arrow-direction', 'left');
+            } else {
+                // Reset arrow to point left (default)
+                container.style.setProperty('--arrow-direction', 'right');
+            }
+
+            // Keep tooltip fully on screen horizontally
+            if (left < 10) {
+                left = 10;
+            }
+
+            // Vertically center the tooltip with the icon
+            let top = rect.top + (rect.height / 2);
+
+            container.style.left = left + 'px';
+            container.style.top = top + 'px';
+            container.style.transform = 'translateY(-50%)';
+            container.style.bottom = 'auto';
+
+            // Show tooltip
+            requestAnimationFrame(() => {
+                container.classList.add('visible');
+            });
+        }
+
+        function hideTooltip() {
+            if (tooltipContainer) {
+                tooltipContainer.classList.remove('visible');
+            }
+            currentTooltipIcon = null;
+        }
+
+        // Set up event delegation for all tooltips
+        document.addEventListener('mouseover', (e) => {
+            // Check if hovering over tooltip icon or its parent
+            const tooltipIcon = e.target.closest('.tooltip');
+            if (tooltipIcon && tooltipIcon !== currentTooltipIcon) {
+                currentTooltipIcon = tooltipIcon;
+
+                // Find the tooltip-text span inside
+                const tooltipTextSpan = tooltipIcon.querySelector('.tooltip-text');
+                if (tooltipTextSpan) {
+                    const text = tooltipTextSpan.textContent;
+                    positionTooltip(tooltipIcon, text);
+                }
+            } else if (!tooltipIcon && currentTooltipIcon && !e.target.closest('.tooltip-container')) {
+                // Mouse left tooltip area
+                hideTooltip();
+            }
+        });
+
+        // Also hide on scroll
+        document.addEventListener('scroll', hideTooltip, true);
+        window.addEventListener('resize', hideTooltip);
+    </script>
+
+    <!-- Help Page Toggle Sections -->
+    <script>
+        function toggleHelpSection(sectionId) {
+            const allSections = ['workflow', 'pageguide', 'faqs', 'tips'];
+            const clickedButton = document.querySelector(`button[onclick="toggleHelpSection('${sectionId}')"]`);
+            const clickedContent = document.getElementById(sectionId + '-content');
+            const clickedIcon = document.getElementById(sectionId + '-icon');
+
+            // Store the button's position before toggling
+            const buttonRect = clickedButton.getBoundingClientRect();
+            const scrollYBefore = window.scrollY;
+            const buttonTopBefore = buttonRect.top + scrollYBefore;
+
+            const wasHidden = clickedContent.classList.contains('hidden');
+
+            // Close all sections first
+            allSections.forEach(section => {
+                const content = document.getElementById(section + '-content');
+                const icon = document.getElementById(section + '-icon');
+                if (content && icon) {
+                    content.classList.add('hidden');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            // If the clicked section was hidden, open it
+            if (wasHidden) {
+                clickedContent.classList.remove('hidden');
+                clickedIcon.style.transform = 'rotate(180deg)';
+
+                // Restore scroll position to keep button in same place
+                requestAnimationFrame(() => {
+                    const buttonRect = clickedButton.getBoundingClientRect();
+                    const buttonTopAfter = buttonRect.top + window.scrollY;
+                    const scrollDiff = buttonTopAfter - buttonTopBefore;
+                    window.scrollTo(0, window.scrollY + scrollDiff);
+                });
+            }
+            // If it was already open, it's now closed (accordion behavior)
         }
     </script>
 </body>

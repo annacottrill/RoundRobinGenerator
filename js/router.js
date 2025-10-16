@@ -53,7 +53,7 @@ const router = {
         let page = window.location.hash.slice(1) || 'home';
 
         // Validate page exists
-        const validPages = ['home', 'ropers', 'events', 'record', 'results'];
+        const validPages = ['home', 'ropers', 'events', 'record', 'results', 'help'];
         if (!validPages.includes(page)) {
             page = 'home';
         }

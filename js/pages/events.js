@@ -9,6 +9,9 @@ let currentModifyEventId = null;
 // Store last created event ID for Begin Event button
 let lastCreatedEventId = null;
 
+// Persistent storage for selected ropers (survives filtering/searching)
+let persistentSelectedRopers = [];
+
 /**
  * Load the events page
  */
@@ -17,6 +20,7 @@ async function loadEventsPage() {
         // Reset page state
         currentModifyEventId = null;
         lastCreatedEventId = null;
+        persistentSelectedRopers = []; // Clear selections when loading page
 
         // Reset and hide the create event form sections
         document.getElementById('create-event-form').reset();
@@ -51,6 +55,17 @@ async function loadEventsPage() {
  */
 async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
     try {
+        // Update persistent storage with currently checked ropers (before rebuilding)
+        const currentlyChecked = Array.from(document.querySelectorAll('input[name="event-roper"]:checked'))
+            .map(cb => parseInt(cb.value));
+
+        // Merge with persistent storage (add new, keep old)
+        currentlyChecked.forEach(id => {
+            if (!persistentSelectedRopers.includes(id)) {
+                persistentSelectedRopers.push(id);
+            }
+        });
+
         const ropers = await dbHelpers.getAllRopers();
         const headersContainer = document.getElementById('event-headers-selection');
         const heelersContainer = document.getElementById('event-heelers-selection');
@@ -90,15 +105,19 @@ async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
                         Select All Headers
                     </span>
                 </label>
-            ` + headers.map(roper => `
-                <label class="flex items-center gap-2 p-2 rounded hover:bg-blue-100 cursor-pointer transition-colors">
-                    <input type="checkbox" name="event-roper" value="${roper.id}" data-position="header"
-                           class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 event-header-checkbox">
-                    <span class="flex-grow text-sm">
-                        ${roper.name}
-                    </span>
-                </label>
-            `).join('');
+            ` + headers.map(roper => {
+                // Check if this roper is in persistent selections
+                const isChecked = persistentSelectedRopers.includes(roper.id) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 p-2 rounded hover:bg-blue-100 cursor-pointer transition-colors">
+                        <input type="checkbox" name="event-roper" value="${roper.id}" data-position="header"
+                               class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 event-header-checkbox" ${isChecked}>
+                        <span class="flex-grow text-sm">
+                            ${roper.name}
+                        </span>
+                    </label>
+                `;
+            }).join('');
         }
 
         // Populate heelers section
@@ -114,18 +133,78 @@ async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
                         Select All Heelers
                     </span>
                 </label>
-            ` + heelers.map(roper => `
-                <label class="flex items-center gap-2 p-2 rounded hover:bg-green-100 cursor-pointer transition-colors">
-                    <input type="checkbox" name="event-roper" value="${roper.id}" data-position="heeler"
-                           class="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500 event-heeler-checkbox">
-                    <span class="flex-grow text-sm">
-                        ${roper.name}
-                    </span>
-                </label>
-            `).join('');
+            ` + heelers.map(roper => {
+                // Check if this roper is in persistent selections
+                const isChecked = persistentSelectedRopers.includes(roper.id) ? 'checked' : '';
+                return `
+                    <label class="flex items-center gap-2 p-2 rounded hover:bg-green-100 cursor-pointer transition-colors">
+                        <input type="checkbox" name="event-roper" value="${roper.id}" data-position="heeler"
+                               class="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500 event-heeler-checkbox" ${isChecked}>
+                        <span class="flex-grow text-sm">
+                            ${roper.name}
+                        </span>
+                    </label>
+                `;
+            }).join('');
         }
     } catch (error) {
         console.error('Error loading ropers for selection:', error);
+    }
+
+    // Add event listeners to update counters AND persistent storage when checkboxes change
+    updateRoperCounts();
+    document.querySelectorAll('.event-header-checkbox, .event-heeler-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const roperId = parseInt(e.target.value);
+            if (e.target.checked) {
+                // Add to persistent selections
+                if (!persistentSelectedRopers.includes(roperId)) {
+                    persistentSelectedRopers.push(roperId);
+                }
+            } else {
+                // Remove from persistent selections
+                persistentSelectedRopers = persistentSelectedRopers.filter(id => id !== roperId);
+            }
+            updateRoperCounts();
+        });
+    });
+}
+
+/**
+ * Update the counter badges showing how many ropers are selected
+ */
+function updateRoperCounts() {
+    // Count selected headers
+    const selectedHeaders = document.querySelectorAll('.event-header-checkbox:checked').length;
+    const headerCountElement = document.getElementById('header-count');
+    if (headerCountElement) {
+        headerCountElement.textContent = `${selectedHeaders} selected`;
+    }
+
+    // Count selected heelers
+    const selectedHeelers = document.querySelectorAll('.event-heeler-checkbox:checked').length;
+    const heelerCountElement = document.getElementById('heeler-count');
+    if (heelerCountElement) {
+        heelerCountElement.textContent = `${selectedHeelers} selected`;
+    }
+}
+
+/**
+ * Update the counter badges for modify event section
+ */
+function updateModifyRoperCounts() {
+    // Count selected headers in modify section
+    const selectedHeaders = document.querySelectorAll('#modify-headers-selection input[type="checkbox"]:checked:not(#modify-select-all-headers)').length;
+    const headerCountElement = document.getElementById('modify-header-count');
+    if (headerCountElement) {
+        headerCountElement.textContent = `${selectedHeaders} selected`;
+    }
+
+    // Count selected heelers in modify section
+    const selectedHeelers = document.querySelectorAll('#modify-heelers-selection input[type="checkbox"]:checked:not(#modify-select-all-heelers)').length;
+    const heelerCountElement = document.getElementById('modify-heeler-count');
+    if (heelerCountElement) {
+        heelerCountElement.textContent = `${selectedHeelers} selected`;
     }
 }
 
@@ -197,6 +276,7 @@ async function handleCreateEvent(e) {
         // Reset form
         e.target.reset();
         document.getElementById('event-date').value = app.getTodayDate();
+        persistentSelectedRopers = []; // Clear persistent selections after successful create
         await loadRopersForSelection();
 
         // Reload events dropdown for modification section
@@ -500,6 +580,12 @@ async function loadEventForModification(eventId) {
                 </div>
             `;
         }).join('');
+
+        // Add event listeners to update counters for modify section
+        updateModifyRoperCounts();
+        document.querySelectorAll('#modify-headers-selection input[type="checkbox"], #modify-heelers-selection input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', updateModifyRoperCounts);
+        });
 
         // Show modification section
         document.getElementById('modify-event-section').classList.remove('hidden');
@@ -929,6 +1015,9 @@ function toggleModifySelectAll(position) {
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
+
+    // Update counters after toggling all
+    updateModifyRoperCounts();
 }
 
 /**
@@ -976,6 +1065,9 @@ function toggleSelectAll(position) {
     checkboxes.forEach(cb => {
         cb.checked = selectAllCheckbox.checked;
     });
+
+    // Update counters after toggling all
+    updateRoperCounts();
 }
 
 
@@ -1101,6 +1193,165 @@ window.addPenalty = addPenalty;
 window.removePenalty = removePenalty;
 window.addModifyPenalty = addModifyPenalty;
 window.removeModifyPenalty = removeModifyPenalty;
+
+// ====================ADD ROPER MODAL ====================
+
+let pendingRoperPosition = null; // Track which position button was clicked
+let pendingRoperContext = 'create'; // Track if modal opened from 'create' or 'modify' context
+
+/**
+ * Open the Add Roper modal with pre-selected position
+ * @param {string} position - 'header' or 'heeler'
+ * @param {string} context - 'create' or 'modify' (default: 'create')
+ */
+function openAddRoperModal(position, context = 'create') {
+    pendingRoperPosition = position;
+    pendingRoperContext = context;
+    const modal = document.getElementById('add-roper-modal');
+    const positionSelect = document.getElementById('modal-roper-position');
+    const errorMsg = document.getElementById('modal-roper-error');
+
+    // Set the position based on which button was clicked
+    positionSelect.value = position;
+
+    // Reset form
+    document.getElementById('add-roper-modal-form').reset();
+    document.getElementById('modal-roper-position').value = position;
+    document.getElementById('modal-roper-skill').value = 5;
+    errorMsg.classList.add('hidden');
+
+    // Show modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Close the Add Roper modal
+ */
+function closeAddRoperModal() {
+    const modal = document.getElementById('add-roper-modal');
+    modal.classList.add('hidden');
+    pendingRoperPosition = null;
+    pendingRoperContext = 'create';
+}
+
+/**
+ * Handle Add Roper modal form submission
+ */
+async function handleAddRoperModalSubmit(e) {
+    e.preventDefault();
+
+    try {
+        const name = document.getElementById('modal-roper-name').value.trim();
+        const position = document.getElementById('modal-roper-position').value;
+        const skillLevel = parseInt(document.getElementById('modal-roper-skill').value);
+        const errorMsg = document.getElementById('modal-roper-error');
+
+        if (!name || !position) {
+            errorMsg.textContent = 'Please fill in all fields';
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+
+        // Check for duplicate name in the same position
+        const existingRopers = await dbHelpers.getAllRopers();
+        const duplicate = existingRopers.find(r =>
+            r.name.toLowerCase() === name.toLowerCase() &&
+            r.position === position
+        );
+
+        if (duplicate) {
+            errorMsg.textContent = `A ${position} named "${name}" already exists!`;
+            errorMsg.classList.remove('hidden');
+            return;
+        }
+
+        // Add roper to database
+        const newRoperId = await dbHelpers.addRoper({
+            name: name,
+            position: position,
+            skillLevel: skillLevel
+        });
+
+        app.showNotification(`${name} added successfully!`, 'success');
+
+        // Store context and position before closing modal
+        const savedContext = pendingRoperContext;
+        const savedPosition = position;
+
+        // Close modal (this resets pendingRoperContext, so we use savedContext)
+        closeAddRoperModal();
+
+        // Handle based on context (create or modify)
+        if (savedContext === 'modify') {
+            // If in modify context, reload BOTH the modify event AND the create event lists
+            if (currentModifyEventId) {
+                // Reload the modify event section
+                await loadEventForModification(currentModifyEventId);
+
+                // Also reload the create event section so new roper appears there too
+                await loadRopersForSelection();
+
+                // Wait a tick for DOM to be ready
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                // Automatically check the newly added roper in modify section ONLY
+                // The selector needs to target the specific modify section containers
+                const sectionId = savedPosition === 'header' ? 'modify-headers-selection' : 'modify-heelers-selection';
+                const checkbox = document.querySelector(`#${sectionId} input[type="checkbox"][value="${newRoperId}"]`);
+
+                if (checkbox) {
+                    checkbox.checked = true;
+                    checkbox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    updateModifyRoperCounts();
+                } else {
+                    console.log('Checkbox not found for new roper in modify section:', newRoperId, savedPosition, sectionId);
+                    console.log('All checkboxes in section:', document.querySelectorAll(`#${sectionId} input[type="checkbox"]`));
+                }
+            }
+        } else {
+            // Default create context
+            // Reload BOTH the create event AND the modify event lists
+
+            // Reload the create event section
+            await loadRopersForSelection();
+
+            // Also reload the modify event section if an event is currently being edited
+            if (currentModifyEventId) {
+                await loadEventForModification(currentModifyEventId);
+            }
+
+            // Wait a tick for DOM to be ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Automatically check the newly added roper in create section ONLY
+            const checkbox = document.querySelector(`input[name="event-roper"][value="${newRoperId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+                // Scroll to show the new roper
+                checkbox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                // Update the counters
+                updateRoperCounts();
+            }
+        }
+
+        // Update home page stats
+        if (typeof updateStats === 'function') {
+            updateStats();
+        }
+    } catch (error) {
+        console.error('Error adding roper from modal:', error);
+        const errorMsg = document.getElementById('modal-roper-error');
+        errorMsg.textContent = 'Error adding roper. Please try again.';
+        errorMsg.classList.remove('hidden');
+    }
+}
+
+// Set up Add Roper modal form handler
+document.getElementById('add-roper-modal-form').addEventListener('submit', handleAddRoperModalSubmit);
+
+// Export functions
+window.openAddRoperModal = openAddRoperModal;
+window.closeAddRoperModal = closeAddRoperModal;
 
 // Listen for page load events
 window.addEventListener('pageload', (e) => {
