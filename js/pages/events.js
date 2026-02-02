@@ -41,6 +41,9 @@ async function loadEventsPage() {
 
         // Set default date to today
         document.getElementById('event-date').value = app.getTodayDate();
+
+        // Initialize payout fields based on default placesToPay
+        generatePayoutFields();
     } catch (error) {
         console.error('Error loading events page:', error);
         app.showNotification('Error loading page', 'error');
@@ -166,6 +169,7 @@ async function loadRopersForSelection(headerSearch = '', heelerSearch = '') {
                 persistentSelectedRopers = persistentSelectedRopers.filter(id => id !== roperId);
             }
             updateRoperCounts();
+            calculateEventMoney(); // Recalculate money when ropers change
         });
     });
 }
@@ -209,14 +213,54 @@ function updateModifyRoperCounts() {
 }
 
 /**
+ * Validate and highlight all invalid fields in a form
+ * @param {HTMLFormElement} form - The form to validate
+ * @returns {boolean} - True if form is valid, false otherwise
+ */
+function validateFormFields(form) {
+    // Remove any existing invalid-field classes
+    form.querySelectorAll('.invalid-field').forEach(field => {
+        field.classList.remove('invalid-field');
+    });
+
+    // Check form validity
+    if (form.checkValidity()) {
+        return true;
+    }
+
+    // Find all invalid fields and mark them
+    const invalidFields = form.querySelectorAll(':invalid');
+    invalidFields.forEach(field => {
+        field.classList.add('invalid-field');
+    });
+
+    // Scroll to first invalid field
+    if (invalidFields.length > 0) {
+        invalidFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        invalidFields[0].focus();
+    }
+
+    return false;
+}
+
+/**
  * Handle create event form submission
  */
 async function handleCreateEvent(e) {
     e.preventDefault();
 
+    // Validate all form fields
+    const form = e.target;
+    if (!validateFormFields(form)) {
+        app.showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
     try {
         const eventName = document.getElementById('event-name').value.trim();
         const eventDate = document.getElementById('event-date').value;
+        const placesToPayInput = document.getElementById('event-places-to-pay').value;
+        const placesToPay = placesToPayInput ? parseInt(placesToPayInput) : null;
 
         // Get selected ropers
         const selectedRopers = Array.from(document.querySelectorAll('input[name="event-roper"]:checked'))
@@ -256,13 +300,22 @@ async function handleCreateEvent(e) {
         // Collect penalties
         const penalties = getPenalties();
 
+        // Collect money management data
+        const entryFee = parseFloat(document.getElementById('event-entry-fee').value) || null;
+        const stockFeePercent = parseFloat(document.getElementById('event-stock-fee-percent').value) || null;
+        const payouts = getPayouts();
+
         // Create event
         const eventId = await dbHelpers.createEvent({
             name: eventName,
             date: eventDate,
             roperIds: selectedRopers,
             pairings: pairings,
-            penalties: penalties
+            penalties: penalties,
+            placesToPay: placesToPay,
+            entryFee: entryFee,
+            stockFeePercent: stockFeePercent,
+            payouts: payouts
         });
 
         // Store the event ID for Begin Event button
@@ -404,12 +457,16 @@ async function loadEventsForModification() {
 async function handleModifyEventChange(e) {
     const eventId = parseInt(e.target.value);
 
+    // Show/hide the View Participants button
+    const viewParticipantsBtn = document.getElementById('view-participants-btn');
     if (!eventId) {
         document.getElementById('modify-event-section').classList.add('hidden');
+        viewParticipantsBtn.classList.add('hidden');
         currentModifyEventId = null;
         return;
     }
 
+    viewParticipantsBtn.classList.remove('hidden');
     currentModifyEventId = eventId;
     await loadEventForModification(eventId);
 }
@@ -430,6 +487,11 @@ async function loadEventForModification(eventId) {
         // Populate event info in input fields
         document.getElementById('modify-event-name-input').value = event.name;
         document.getElementById('modify-event-date-input').value = event.date;
+        document.getElementById('modify-event-places-to-pay').value = event.placesToPay || '';
+
+        // Populate money management fields
+        document.getElementById('modify-event-entry-fee').value = event.entryFee || '';
+        document.getElementById('modify-event-stock-fee-percent').value = event.stockFeePercent || '';
 
         // Update status badge
         const statusBadge = document.getElementById('modify-event-status-badge');
@@ -581,10 +643,29 @@ async function loadEventForModification(eventId) {
             `;
         }).join('');
 
+        // Generate payout fields based on placesToPay
+        generateModifyPayoutFields();
+
+        // Populate payout amounts from event data
+        if (event.payouts && event.payouts.length > 0) {
+            event.payouts.forEach(payout => {
+                const headerInput = document.querySelector(`.modify-payout-field-header[data-place="${payout.place}"]`);
+                const heelerInput = document.querySelector(`.modify-payout-field-heeler[data-place="${payout.place}"]`);
+                if (headerInput) headerInput.value = payout.headerAmount || '';
+                if (heelerInput) heelerInput.value = payout.heelerAmount || '';
+            });
+        }
+
+        // Initial calculation
+        calculateModifyEventMoney();
+
         // Add event listeners to update counters for modify section
         updateModifyRoperCounts();
         document.querySelectorAll('#modify-headers-selection input[type="checkbox"], #modify-heelers-selection input[type="checkbox"]').forEach(checkbox => {
-            checkbox.addEventListener('change', updateModifyRoperCounts);
+            checkbox.addEventListener('change', () => {
+                updateModifyRoperCounts();
+                calculateModifyEventMoney(); // Recalculate when ropers change
+            });
         });
 
         // Show modification section
@@ -601,6 +682,40 @@ async function loadEventForModification(eventId) {
 async function updateEvent() {
     if (!currentModifyEventId) return;
 
+    // Validate all money management fields
+    const entryFeeField = document.getElementById('modify-event-entry-fee');
+    const stockFeeField = document.getElementById('modify-event-stock-fee-percent');
+    const payoutFields = document.querySelectorAll('.modify-payout-field-header, .modify-payout-field-heeler');
+
+    // Clear previous invalid states
+    [entryFeeField, stockFeeField, ...payoutFields].forEach(field => {
+        if (field) field.classList.remove('invalid-field');
+    });
+
+    // Check for invalid fields
+    const invalidFields = [];
+    if (!entryFeeField.value || entryFeeField.value <= 0) {
+        entryFeeField.classList.add('invalid-field');
+        invalidFields.push(entryFeeField);
+    }
+    if (stockFeeField.value === '' || stockFeeField.value < 0) {
+        stockFeeField.classList.add('invalid-field');
+        invalidFields.push(stockFeeField);
+    }
+    payoutFields.forEach(field => {
+        if (!field.value || field.value < 0) {
+            field.classList.add('invalid-field');
+            invalidFields.push(field);
+        }
+    });
+
+    if (invalidFields.length > 0) {
+        app.showNotification('Please fill in all required money management fields', 'error');
+        invalidFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        invalidFields[0].focus();
+        return;
+    }
+
     try {
         // Check if event is completed
         const event = await dbHelpers.getEvent(currentModifyEventId);
@@ -612,7 +727,14 @@ async function updateEvent() {
         // Get updated values
         const newName = document.getElementById('modify-event-name-input').value.trim();
         const newDate = document.getElementById('modify-event-date-input').value;
+        const placesToPayInput = document.getElementById('modify-event-places-to-pay').value;
+        const placesToPay = placesToPayInput ? parseInt(placesToPayInput) : null;
         const penalties = getModifyPenalties();
+
+        // Get money management data
+        const entryFee = parseFloat(document.getElementById('modify-event-entry-fee').value) || null;
+        const stockFeePercent = parseFloat(document.getElementById('modify-event-stock-fee-percent').value) || null;
+        const payouts = getModifyPayouts();
 
         // Get selected ropers
         const selectedRopers = Array.from(document.querySelectorAll('input[name="modify-roper"]:checked'))
@@ -682,7 +804,11 @@ async function updateEvent() {
                 date: newDate,
                 roperIds: selectedRopers,
                 pairings: pairings,
-                penalties: penalties
+                penalties: penalties,
+                placesToPay: placesToPay,
+                entryFee: entryFee,
+                stockFeePercent: stockFeePercent,
+                payouts: payouts
             });
 
             // Create new run records
@@ -718,15 +844,23 @@ async function updateEvent() {
             await dbHelpers.updateEvent(currentModifyEventId, {
                 name: newName,
                 date: newDate,
-                penalties: penalties
+                penalties: penalties,
+                placesToPay: placesToPay,
+                entryFee: entryFee,
+                stockFeePercent: stockFeePercent,
+                payouts: payouts
             });
 
             app.showNotification('Event updated! All recorded times have been cleared due to penalty changes.', 'success');
         } else {
-            // Just update name and date without affecting teams or times
+            // Just update name, date, placesToPay, and money fields without affecting teams or times
             await dbHelpers.updateEvent(currentModifyEventId, {
                 name: newName,
-                date: newDate
+                date: newDate,
+                placesToPay: placesToPay,
+                entryFee: entryFee,
+                stockFeePercent: stockFeePercent,
+                payouts: payouts
             });
 
             app.showNotification('Event updated successfully!', 'success');
@@ -1353,11 +1487,530 @@ document.getElementById('add-roper-modal-form').addEventListener('submit', handl
 window.openAddRoperModal = openAddRoperModal;
 window.closeAddRoperModal = closeAddRoperModal;
 
+// ==================== MONEY MANAGEMENT ====================
+
+/**
+ * Generate payout fields based on placesToPay value
+ */
+function generatePayoutFields() {
+    const placesToPay = parseInt(document.getElementById('event-places-to-pay').value) || 0;
+    const payoutFieldsContainer = document.getElementById('event-payout-fields');
+
+    if (placesToPay === 0) {
+        payoutFieldsContainer.innerHTML = '<p class="text-gray-500 italic text-sm">Enter "Places to Pay" above to configure payouts</p>';
+        calculateEventMoney();
+        return;
+    }
+
+    let html = '<div class="space-y-3">';
+
+    // Add payout type toggle at the top
+    html += `
+        <div class="flex items-center justify-between mb-3">
+            <label class="block text-sm font-medium">Payout Amounts by Place</label>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">Payout Type:</span>
+                <div class="relative inline-flex items-center">
+                    <input type="checkbox" id="event-payout-type-toggle" class="hidden" onchange="togglePayoutType('event')">
+                    <label for="event-payout-type-toggle" class="cursor-pointer inline-flex items-center">
+                        <div id="event-payout-toggle-bg" class="w-14 h-7 bg-green-600 rounded-full relative transition-colors">
+                            <span class="absolute right-1.5 top-1 text-xs font-bold text-white pointer-events-none">%</span>
+                            <span class="absolute left-1.5 top-1 text-xs font-bold text-white pointer-events-none">$</span>
+                            <div id="event-payout-toggle-slider" class="absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform"></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    `;
+
+    for (let place = 1; place <= placesToPay; place++) {
+        const placeLabel = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : `${place}th`;
+        html += `
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center p-2 bg-white rounded border border-green-200">
+                <div class="font-semibold text-sm text-gray-700">${placeLabel} Place:</div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Header</label>
+                    <input type="number" class="payout-field-header w-full pl-2 pr-2 py-1.5 text-sm border rounded focus:ring-2 focus:ring-green-500"
+                           data-place="${place}" min="0" step="0.01" placeholder="0" oninput="calculateEventMoney()">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Heeler</label>
+                    <input type="number" class="payout-field-heeler w-full pl-2 pr-2 py-1.5 text-sm border rounded focus:ring-2 focus:ring-green-500"
+                           data-place="${place}" min="0" step="0.01" placeholder="0" oninput="calculateEventMoney()">
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    payoutFieldsContainer.innerHTML = html;
+    calculateEventMoney();
+}
+
+/**
+ * Calculate money totals and update display
+ */
+function calculateEventMoney() {
+    // Get values
+    const entryFee = parseFloat(document.getElementById('event-entry-fee').value) || 0;
+    const stockFeePercent = parseFloat(document.getElementById('event-stock-fee-percent').value) || 0;
+
+    // Count total participants (headers + heelers)
+    const selectedHeaders = document.querySelectorAll('.event-header-checkbox:checked').length;
+    const selectedHeelers = document.querySelectorAll('.event-heeler-checkbox:checked').length;
+    const totalParticipants = selectedHeaders + selectedHeelers;
+
+    // Calculate total expected collections
+    const totalCollections = entryFee * totalParticipants;
+
+    // Calculate stock fee amount
+    const stockFeeAmount = totalCollections * (stockFeePercent / 100);
+
+    // Calculate pot available for payouts (after stock fee)
+    const potAfterStock = totalCollections - stockFeeAmount;
+
+    // Get payout type from toggle (checked = percent, unchecked = dollars)
+    const payoutTypeToggle = document.getElementById('event-payout-type-toggle');
+    const isPercent = payoutTypeToggle ? payoutTypeToggle.checked : false;
+
+    // Calculate total payouts (handling both dollars and percentages)
+    let totalPayouts = 0;
+    document.querySelectorAll('.payout-field-header').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (isPercent) {
+            totalPayouts += potAfterStock * (value / 100);
+        } else {
+            totalPayouts += value;
+        }
+    });
+    document.querySelectorAll('.payout-field-heeler').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (isPercent) {
+            totalPayouts += potAfterStock * (value / 100);
+        } else {
+            totalPayouts += value;
+        }
+    });
+
+    // Calculate total profit (collections - stock fee - payouts)
+    const totalProfit = totalCollections - stockFeeAmount - totalPayouts;
+
+    // Update display
+    document.getElementById('event-total-collections').textContent = `$${totalCollections.toFixed(2)}`;
+    document.getElementById('event-stock-fee-amount').textContent = `$${stockFeeAmount.toFixed(2)}`;
+    document.getElementById('event-total-payouts').textContent = `$${totalPayouts.toFixed(2)}`;
+    document.getElementById('event-total-keep').textContent = `$${totalProfit.toFixed(2)}`;
+}
+
+/**
+ * Get payout data from form
+ * @returns {Array} - Array of payout objects [{place, headerAmount, heelerAmount}]
+ */
+function getPayouts() {
+    const payouts = [];
+    const placesToPay = parseInt(document.getElementById('event-places-to-pay').value) || 0;
+
+    for (let place = 1; place <= placesToPay; place++) {
+        const headerInput = document.querySelector(`.payout-field-header[data-place="${place}"]`);
+        const heelerInput = document.querySelector(`.payout-field-heeler[data-place="${place}"]`);
+
+        if (headerInput && heelerInput) {
+            payouts.push({
+                place: place,
+                headerAmount: parseFloat(headerInput.value) || 0,
+                heelerAmount: parseFloat(heelerInput.value) || 0
+            });
+        }
+    }
+
+    return payouts;
+}
+
+/**
+ * Generate payout fields for modify event section
+ */
+function generateModifyPayoutFields() {
+    const placesToPay = parseInt(document.getElementById('modify-event-places-to-pay').value) || 0;
+    const payoutFieldsContainer = document.getElementById('modify-event-payout-fields');
+
+    if (placesToPay === 0) {
+        payoutFieldsContainer.innerHTML = '<p class="text-gray-500 italic text-sm">Enter "Places to Pay" above to configure payouts</p>';
+        calculateModifyEventMoney();
+        return;
+    }
+
+    let html = '<div class="space-y-3">';
+
+    // Add payout type toggle at the top
+    html += `
+        <div class="flex items-center justify-between mb-3">
+            <label class="block text-sm font-medium">Payout Amounts by Place</label>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-600">Payout Type:</span>
+                <div class="relative inline-flex items-center">
+                    <input type="checkbox" id="modify-event-payout-type-toggle" class="hidden" onchange="togglePayoutType('modify')">
+                    <label for="modify-event-payout-type-toggle" class="cursor-pointer inline-flex items-center">
+                        <div id="modify-payout-toggle-bg" class="w-14 h-7 bg-green-600 rounded-full relative transition-colors">
+                            <span class="absolute right-1.5 top-1 text-xs font-bold text-white pointer-events-none">%</span>
+                            <span class="absolute left-1.5 top-1 text-xs font-bold text-white pointer-events-none">$</span>
+                            <div id="modify-payout-toggle-slider" class="absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-6 w-6 transition-transform"></div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    `;
+
+    for (let place = 1; place <= placesToPay; place++) {
+        const placeLabel = place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : `${place}th`;
+        html += `
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center p-2 bg-white rounded border border-green-200">
+                <div class="font-semibold text-sm text-gray-700">${placeLabel} Place:</div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Header</label>
+                    <input type="number" class="modify-payout-field-header w-full pl-2 pr-2 py-1.5 text-sm border rounded focus:ring-2 focus:ring-green-500"
+                           data-place="${place}" min="0" step="0.01" placeholder="0" oninput="calculateModifyEventMoney()">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-600 mb-1">Heeler</label>
+                    <input type="number" class="modify-payout-field-heeler w-full pl-2 pr-2 py-1.5 text-sm border rounded focus:ring-2 focus:ring-green-500"
+                           data-place="${place}" min="0" step="0.01" placeholder="0" oninput="calculateModifyEventMoney()">
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    payoutFieldsContainer.innerHTML = html;
+    calculateModifyEventMoney();
+}
+
+/**
+ * Calculate money totals for modify event section
+ */
+function calculateModifyEventMoney() {
+    // Get values
+    const entryFee = parseFloat(document.getElementById('modify-event-entry-fee').value) || 0;
+    const stockFeePercent = parseFloat(document.getElementById('modify-event-stock-fee-percent').value) || 0;
+
+    // Count total participants (headers + heelers)
+    const selectedHeaders = document.querySelectorAll('#modify-headers-selection input[type="checkbox"]:checked:not(#modify-select-all-headers)').length;
+    const selectedHeelers = document.querySelectorAll('#modify-heelers-selection input[type="checkbox"]:checked:not(#modify-select-all-heelers)').length;
+    const totalParticipants = selectedHeaders + selectedHeelers;
+
+    // Calculate total expected collections
+    const totalCollections = entryFee * totalParticipants;
+
+    // Calculate stock fee amount
+    const stockFeeAmount = totalCollections * (stockFeePercent / 100);
+
+    // Calculate pot available for payouts (after stock fee)
+    const potAfterStock = totalCollections - stockFeeAmount;
+
+    // Get payout type from toggle (checked = percent, unchecked = dollars)
+    const payoutTypeToggle = document.getElementById('modify-event-payout-type-toggle');
+    const isPercent = payoutTypeToggle ? payoutTypeToggle.checked : false;
+
+    // Calculate total payouts (handling both dollars and percentages)
+    let totalPayouts = 0;
+    document.querySelectorAll('.modify-payout-field-header').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (isPercent) {
+            totalPayouts += potAfterStock * (value / 100);
+        } else {
+            totalPayouts += value;
+        }
+    });
+    document.querySelectorAll('.modify-payout-field-heeler').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (isPercent) {
+            totalPayouts += potAfterStock * (value / 100);
+        } else {
+            totalPayouts += value;
+        }
+    });
+
+    // Calculate total profit (collections - stock fee - payouts)
+    const totalProfit = totalCollections - stockFeeAmount - totalPayouts;
+
+    // Update display
+    document.getElementById('modify-event-total-collections').textContent = `$${totalCollections.toFixed(2)}`;
+    document.getElementById('modify-event-stock-fee-amount').textContent = `$${stockFeeAmount.toFixed(2)}`;
+    document.getElementById('modify-event-total-payouts').textContent = `$${totalPayouts.toFixed(2)}`;
+    document.getElementById('modify-event-total-keep').textContent = `$${totalProfit.toFixed(2)}`;
+}
+
+/**
+ * Get payout data from modify event form
+ * @returns {Array} - Array of payout objects [{place, headerAmount, heelerAmount}]
+ */
+function getModifyPayouts() {
+    const payouts = [];
+    const placesToPay = parseInt(document.getElementById('modify-event-places-to-pay').value) || 0;
+
+    for (let place = 1; place <= placesToPay; place++) {
+        const headerInput = document.querySelector(`.modify-payout-field-header[data-place="${place}"]`);
+        const heelerInput = document.querySelector(`.modify-payout-field-heeler[data-place="${place}"]`);
+
+        if (headerInput && heelerInput) {
+            payouts.push({
+                place: place,
+                headerAmount: parseFloat(headerInput.value) || 0,
+                heelerAmount: parseFloat(heelerInput.value) || 0
+            });
+        }
+    }
+
+    return payouts;
+}
+
+// Export money management functions
+window.generatePayoutFields = generatePayoutFields;
+window.calculateEventMoney = calculateEventMoney;
+window.getPayouts = getPayouts;
+window.generateModifyPayoutFields = generateModifyPayoutFields;
+window.calculateModifyEventMoney = calculateModifyEventMoney;
+window.getModifyPayouts = getModifyPayouts;
+
+// Add event listeners to remove invalid-field class when user starts typing
+document.addEventListener('input', (e) => {
+    if (e.target.classList.contains('invalid-field')) {
+        e.target.classList.remove('invalid-field');
+    }
+});
+
 // Listen for page load events
 window.addEventListener('pageload', (e) => {
     if (e.detail.page === 'events') {
         loadEventsPage();
     }
 });
+
+/**
+ * Show participants list modal for an event
+ * @param {number} eventId - Event ID
+ */
+async function showParticipantsModal(eventId) {
+    try {
+        const event = await dbHelpers.getEvent(eventId);
+        if (!event) {
+            app.showNotification('Event not found', 'error');
+            return;
+        }
+
+        // Get all ropers including deleted ones
+        const allRopers = await dbHelpers.getAllRopersIncludingDeleted();
+        const roperMap = {};
+        allRopers.forEach(r => roperMap[r.id] = r);
+
+        // Get participating ropers
+        const participants = event.roperIds
+            .map(id => roperMap[id])
+            .filter(r => r); // Filter out any that don't exist
+
+        // Separate headers and heelers
+        const headers = participants.filter(r => r.position === 'header').sort((a, b) => a.name.localeCompare(b.name));
+        const heelers = participants.filter(r => r.position === 'heeler').sort((a, b) => a.name.localeCompare(b.name));
+
+        // Update modal content
+        document.getElementById('participants-event-info').textContent =
+            `${event.name} - ${app.formatDate(event.date)}`;
+
+        // Build participant list HTML
+        let listHTML = '';
+
+        if (headers.length > 0) {
+            listHTML += `
+                <div class="p-3 bg-blue-50">
+                    <h4 class="font-semibold text-blue-900 text-sm">Headers</h4>
+                </div>
+            `;
+            headers.forEach(roper => {
+                const deletedLabel = roper.deleted ? '<span class="text-xs text-gray-400 ml-2">(Deleted)</span>' : '';
+                listHTML += `
+                    <div class="p-3 hover:bg-gray-50">
+                        <span class="text-gray-800">${roper.name}</span>${deletedLabel}
+                    </div>
+                `;
+            });
+        }
+
+        if (heelers.length > 0) {
+            listHTML += `
+                <div class="p-3 bg-green-50">
+                    <h4 class="font-semibold text-green-900 text-sm">Heelers</h4>
+                </div>
+            `;
+            heelers.forEach(roper => {
+                const deletedLabel = roper.deleted ? '<span class="text-xs text-gray-400 ml-2">(Deleted)</span>' : '';
+                listHTML += `
+                    <div class="p-3 hover:bg-gray-50">
+                        <span class="text-gray-800">${roper.name}</span>${deletedLabel}
+                    </div>
+                `;
+            });
+        }
+
+        document.getElementById('participants-list').innerHTML = listHTML;
+
+        // Update counts
+        document.getElementById('participants-total').textContent = participants.length;
+        document.getElementById('participants-headers').textContent = headers.length;
+        document.getElementById('participants-heelers').textContent = heelers.length;
+
+        // Store event ID and participant data for copying
+        window.currentParticipantsData = {
+            eventName: event.name,
+            eventDate: event.date,
+            headers: headers,
+            heelers: heelers
+        };
+
+        // Show modal
+        document.getElementById('participants-modal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error showing participants:', error);
+        app.showNotification('Error loading participants', 'error');
+    }
+}
+
+/**
+ * Close participants modal
+ */
+function closeParticipantsModal() {
+    document.getElementById('participants-modal').classList.add('hidden');
+    window.currentParticipantsData = null;
+}
+
+/**
+ * View participants for the currently selected event in modify dropdown
+ */
+function viewSelectedEventParticipants() {
+    const eventId = parseInt(document.getElementById('modify-event-select').value);
+    if (eventId) {
+        showParticipantsModal(eventId);
+    }
+}
+
+/**
+ * Copy participants list to clipboard
+ */
+async function copyParticipantsList() {
+    if (!window.currentParticipantsData) return;
+
+    const { eventName, eventDate, headers, heelers } = window.currentParticipantsData;
+
+    // Build text list
+    let textList = `${eventName} - ${app.formatDate(eventDate)}\n`;
+    textList += `Total Participants: ${headers.length + heelers.length}\n\n`;
+
+    if (headers.length > 0) {
+        textList += `Headers (${headers.length}):\n`;
+        headers.forEach(roper => {
+            textList += `- ${roper.name}\n`;
+        });
+        textList += '\n';
+    }
+
+    if (heelers.length > 0) {
+        textList += `Heelers (${heelers.length}):\n`;
+        heelers.forEach(roper => {
+            textList += `- ${roper.name}\n`;
+        });
+    }
+
+    try {
+        await navigator.clipboard.writeText(textList);
+        app.showNotification('Participant list copied to clipboard!', 'success');
+    } catch (error) {
+        console.error('Error copying to clipboard:', error);
+        // Fallback: create a textarea and select it
+        const textarea = document.createElement('textarea');
+        textarea.value = textList;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            app.showNotification('Participant list copied to clipboard!', 'success');
+        } catch (e) {
+            app.showNotification('Could not copy to clipboard', 'error');
+        }
+        document.body.removeChild(textarea);
+    }
+}
+
+/**
+ * Toggle payout type ($ vs %)
+ * @param {string} type - 'event' or 'modify'
+ */
+function togglePayoutType(type) {
+    const prefix = type === 'event' ? 'event-payout' : 'modify-payout';
+    const toggle = document.getElementById(`${prefix}-type-toggle`);
+    const slider = document.getElementById(`${prefix}-toggle-slider`);
+    const bg = document.getElementById(`${prefix}-toggle-bg`);
+
+    if (toggle && slider && bg) {
+        if (toggle.checked) {
+            // Percent mode - slider moves RIGHT to %
+            slider.style.transform = 'translateX(28px)';
+            bg.classList.remove('bg-green-600');
+            bg.classList.add('bg-blue-600');
+        } else {
+            // Dollar mode - slider stays LEFT on $
+            slider.style.transform = 'translateX(0)';
+            bg.classList.remove('bg-blue-600');
+            bg.classList.add('bg-green-600');
+        }
+    }
+
+    // Recalculate money
+    if (type === 'event') {
+        calculateEventMoney();
+    } else {
+        calculateModifyEventMoney();
+    }
+}
+
+/**
+ * Toggle money management section visibility
+ */
+function toggleMoneyManagement() {
+    const toggle = document.getElementById('event-money-toggle');
+    const content = document.getElementById('event-money-content');
+
+    if (toggle.checked) {
+        content.classList.remove('hidden');
+    } else {
+        content.classList.add('hidden');
+    }
+}
+
+/**
+ * Toggle modify money management section visibility
+ */
+function toggleModifyMoneyManagement() {
+    const toggle = document.getElementById('modify-event-money-toggle');
+    const content = document.getElementById('modify-event-money-content');
+
+    if (toggle.checked) {
+        content.classList.remove('hidden');
+    } else {
+        content.classList.add('hidden');
+    }
+}
+
+// Export money toggle functions
+window.togglePayoutType = togglePayoutType;
+window.toggleMoneyManagement = toggleMoneyManagement;
+window.toggleModifyMoneyManagement = toggleModifyMoneyManagement;
+
+// Export participants modal functions
+window.showParticipantsModal = showParticipantsModal;
+window.closeParticipantsModal = closeParticipantsModal;
+window.copyParticipantsList = copyParticipantsList;
+window.viewSelectedEventParticipants = viewSelectedEventParticipants;
 
 console.log('Events page script loaded');

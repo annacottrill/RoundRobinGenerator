@@ -69,6 +69,91 @@ async function displayResults(eventId) {
 
         let html = '';
 
+        // Show Places to Pay banner if configured
+        if (event.placesToPay && event.placesToPay > 0) {
+            html += `
+                <div class="mb-4 p-4 bg-amber-50 border border-amber-300 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-6 h-6 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <div>
+                            <p class="text-amber-900 font-bold">Paying Top ${event.placesToPay} Place${event.placesToPay !== 1 ? 's' : ''}</p>
+                            <p class="text-amber-700 text-sm">Highlighted rows indicate money positions</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show financial summary if money management is configured
+        // HIDDEN: Financial tracking disabled
+        // if (event.entryFee || event.stockFeePercent || (event.payouts && event.payouts.length > 0)) {
+        //     const entryFee = event.entryFee || 0;
+        //     const stockFeePercent = event.stockFeePercent || 0;
+        //     const payouts = event.payouts || [];
+
+        //     // Count total participants
+        //     const totalParticipants = event.roperIds ? event.roperIds.length : 0;
+
+        //     // Calculate totals
+        //     const totalCollections = entryFee * totalParticipants;
+        //     const stockFeeAmount = totalCollections * (stockFeePercent / 100);
+
+        //     let totalPayouts = 0;
+        //     payouts.forEach(payout => {
+        //         totalPayouts += (payout.headerAmount || 0) + (payout.heelerAmount || 0);
+        //     });
+
+        //     const totalProfit = totalCollections - stockFeeAmount - totalPayouts;
+
+        //     html += `
+        //         <div class="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg">
+        //             <div class="flex items-center gap-2 mb-3">
+        //                 <svg class="w-5 h-5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        //                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        //                 </svg>
+        //                 <h3 class="text-lg font-bold text-green-900">Financial Summary</h3>
+        //             </div>
+        //             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        //                 <div class="bg-white p-3 rounded border border-green-200">
+        //                     <div class="text-xs text-gray-600 mb-1">Total Collections</div>
+        //                     <div class="text-lg font-bold text-green-700">$${totalCollections.toFixed(2)}</div>
+        //                     <div class="text-xs text-gray-500">${totalParticipants} × $${entryFee.toFixed(2)}</div>
+        //                 </div>
+        //                 <div class="bg-white p-3 rounded border border-green-200">
+        //                     <div class="text-xs text-gray-600 mb-1">Stock Fee (${stockFeePercent}%)</div>
+        //                     <div class="text-lg font-bold text-green-700">$${stockFeeAmount.toFixed(2)}</div>
+        //                 </div>
+        //                 <div class="bg-white p-3 rounded border border-green-200">
+        //                     <div class="text-xs text-gray-600 mb-1">Total Payouts</div>
+        //                     <div class="text-lg font-bold text-green-700">$${totalPayouts.toFixed(2)}</div>
+        //                 </div>
+        //                 <div class="bg-white p-3 rounded border border-green-200">
+        //                     <div class="text-xs text-gray-600 mb-1">Total Profit</div>
+        //                     <div class="text-lg font-bold text-green-700">$${totalProfit.toFixed(2)}</div>
+        //                 </div>
+        //             </div>
+        //             ${payouts.length > 0 ? `
+        //                 <div class="mt-3 p-3 bg-white rounded border border-green-200">
+        //                     <div class="text-sm font-semibold text-gray-700 mb-2">Payout Breakdown:</div>
+        //                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+        //                         ${payouts.map(payout => {
+        //                             const placeLabel = payout.place === 1 ? '1st' : payout.place === 2 ? '2nd' : payout.place === 3 ? '3rd' : `${payout.place}th`;
+        //                             return `
+        //                                 <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+        //                                     <span class="font-semibold">${placeLabel}:</span>
+        //                                     <span>H: $${(payout.headerAmount || 0).toFixed(2)} / L: $${(payout.heelerAmount || 0).toFixed(2)}</span>
+        //                                 </div>
+        //                             `;
+        //                         }).join('')}
+        //                     </div>
+        //                 </div>
+        //             ` : ''}
+        //         </div>
+        //     `;
+        // }
+
         // Show event status and completion button
         if (completedRuns.length > 0) {
             if (isEventCompleted) {
@@ -176,6 +261,9 @@ async function displayResults(eventId) {
                                     actualRank = index + 1;
                                 }
 
+                                // Determine if this rank is in the money
+                                const isPayingPlace = event.placesToPay && actualRank <= event.placesToPay && header.catches > 0;
+
                                 let rankBadge = `<span class="font-bold text-gray-700">${actualRank}</span>`;
                                 if (actualRank === 1 && header.catches > 0) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-yellow-900 font-bold">1</span>`;
@@ -185,8 +273,16 @@ async function displayResults(eventId) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-400 text-orange-900 font-bold">3</span>`;
                                 }
 
+                                // Determine row styling - paying places get subtle gold background
+                                let rowClass = '';
+                                if (isPayingPlace) {
+                                    rowClass = 'bg-amber-50 font-semibold border-l-4 border-amber-400';
+                                } else if (actualRank <= 3 && header.catches > 0) {
+                                    rowClass = 'bg-blue-50 font-semibold';
+                                }
+
                                 return `
-                                    <tr class="${actualRank <= 3 && header.catches > 0 ? 'bg-blue-50 font-semibold' : ''}">
+                                    <tr class="${rowClass}">
                                         <td class="border border-blue-200 p-1 sm:p-3 text-center">${rankBadge}</td>
                                         <td class="border border-blue-200 p-1 sm:p-3">${header.name}</td>
                                         <td class="border border-blue-200 p-1 sm:p-3 text-center font-bold text-gray-700">${header.totalRuns}</td>
@@ -246,6 +342,9 @@ async function displayResults(eventId) {
                                     actualRank = index + 1;
                                 }
 
+                                // Determine if this rank is in the money
+                                const isPayingPlace = event.placesToPay && actualRank <= event.placesToPay && heeler.catches > 0;
+
                                 let rankBadge = `<span class="font-bold text-gray-700">${actualRank}</span>`;
                                 if (actualRank === 1 && heeler.catches > 0) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-yellow-900 font-bold">1</span>`;
@@ -255,8 +354,16 @@ async function displayResults(eventId) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-400 text-orange-900 font-bold">3</span>`;
                                 }
 
+                                // Determine row styling - paying places get subtle gold background
+                                let rowClass = '';
+                                if (isPayingPlace) {
+                                    rowClass = 'bg-amber-50 font-semibold border-l-4 border-amber-400';
+                                } else if (actualRank <= 3 && heeler.catches > 0) {
+                                    rowClass = 'bg-green-50 font-semibold';
+                                }
+
                                 return `
-                                    <tr class="${actualRank <= 3 && heeler.catches > 0 ? 'bg-green-50 font-semibold' : ''}">
+                                    <tr class="${rowClass}">
                                         <td class="border border-green-200 p-1 sm:p-3 text-center">${rankBadge}</td>
                                         <td class="border border-green-200 p-1 sm:p-3">${heeler.name}</td>
                                         <td class="border border-green-200 p-1 sm:p-3 text-center font-bold text-gray-700">${heeler.totalRuns}</td>
