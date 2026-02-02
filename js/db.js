@@ -80,6 +80,40 @@ db.version(4).stores({
     });
 });
 
+// Version 5: Add placesToPay field to events
+db.version(5).stores({
+    ropers: '++id, name, position, skillLevel',
+    events: '++id, name, date, createdAt',
+    runs: '++id, eventId, headerId, heelerId, time, round'
+}).upgrade(tx => {
+    // Add placesToPay field to all existing events (default to null = no limit)
+    return tx.table('events').toCollection().modify(event => {
+        if (event.placesToPay === undefined) {
+            event.placesToPay = null;
+        }
+    });
+});
+
+// Version 6: Add money management fields to events
+db.version(6).stores({
+    ropers: '++id, name, position, skillLevel',
+    events: '++id, name, date, createdAt',
+    runs: '++id, eventId, headerId, heelerId, time, round'
+}).upgrade(tx => {
+    // Add money management fields to all existing events
+    return tx.table('events').toCollection().modify(event => {
+        if (event.entryFee === undefined) {
+            event.entryFee = null; // Entry fee per person
+        }
+        if (event.stockFeePercent === undefined) {
+            event.stockFeePercent = null; // Stock fee percentage (whole number)
+        }
+        if (event.payouts === undefined) {
+            event.payouts = []; // Array of payout objects [{place, headerAmount, heelerAmount}]
+        }
+    });
+});
+
 /**
  * Database Helper Functions
  * These functions provide a clean API for CRUD operations
@@ -179,7 +213,7 @@ const dbHelpers = {
 
     /**
      * Create a new event with team pairings
-     * @param {Object} event - Event object with name, date, and roperIds array
+     * @param {Object} event - Event object with name, date, roperIds array, and optional money management fields
      * @returns {Promise<number>} - ID of the newly created event
      */
     async createEvent(event) {
@@ -192,6 +226,10 @@ const dbHelpers = {
                 { name: 'One Leg', seconds: 5 },
                 { name: 'Barrier', seconds: 5 }
             ], // Array of penalty objects
+            placesToPay: event.placesToPay || null, // Number of places that will receive payouts (null = no limit)
+            entryFee: event.entryFee || null, // Entry fee per person
+            stockFeePercent: event.stockFeePercent || null, // Stock fee percentage
+            payouts: event.payouts || [], // Array of payout objects [{place, headerAmount, heelerAmount}]
             createdAt: new Date(),
             status: 'active' // 'active' or 'completed'
         });
@@ -266,7 +304,8 @@ const dbHelpers = {
             rawTime: timeData.rawTime,
             penalties: timeData.penalties || [],
             completed: true,
-            recordedAt: new Date()
+            recordedAt: new Date(),
+            isRerun: false
         });
     },
 

@@ -148,7 +148,7 @@ async function displayTeamsForRecording(eventId) {
                 : '';
 
             return `
-            <div class="p-4 bg-gray-50 rounded-lg border ${run.completed ? 'border-green-300' : 'border-gray-200'}">
+            <div class="p-4 bg-gray-50 rounded-lg border ${run.completed ? 'border-green-300' : run.isRerun ? 'border-orange-400 border-2' : 'border-gray-200'} ${run.isRerun && !run.completed ? 'bg-orange-50' : ''}">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex-grow">
                         <div class="flex items-center gap-2">
@@ -176,19 +176,28 @@ async function displayTeamsForRecording(eventId) {
                                             ` : ''}
                                         `}
                                     </div>
-                                ` : !run.completed ? `
-                                    <div class="text-sm text-gray-500 mt-1">
-                                        No time recorded
+                                ` : run.isRerun && !run.completed ? `
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <svg class="w-5 h-5 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span class="text-sm font-semibold text-orange-600">Needs time entry</span>
                                     </div>
                                 ` : ''}
                             </div>
                         </div>
                     </div>
                     ${run.completed && !isEditing ? `
-                        <button onclick="editRunTime(${run.id})"
-                                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                            Edit
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="editRunTime(${run.id})"
+                                    class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                                Edit
+                            </button>
+                            <button onclick="markForRerun(${run.id})"
+                                    class="px-3 py-1 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm">
+                                Rerun
+                            </button>
+                        </div>
                     ` : ''}
                 </div>
                 ${!run.completed || isEditing ? `
@@ -464,6 +473,56 @@ function cancelEdit() {
 }
 
 /**
+ * Mark a run for rerun - clears the time and marks as incomplete
+ * @param {number} runId - Run ID
+ */
+async function markForRerun(runId) {
+    try {
+        // Get the run to check if it has a time
+        const run = await db.runs.get(runId);
+
+        if (!run) {
+            app.showNotification('Run not found', 'error');
+            return;
+        }
+
+        // If the run has a time recorded, show confirmation
+        if (run.time !== null && run.time !== undefined) {
+            const confirmed = await app.confirm(
+                'Mark this run for rerun?\n\n' +
+                'This will clear the existing time and mark the team as needing to rerun. ' +
+                'The run will be highlighted until a new time is entered.'
+            );
+
+            if (!confirmed) return;
+        }
+
+        // Clear the time and mark as incomplete with rerun flag
+        await db.runs.update(runId, {
+            time: null,
+            rawTime: null,
+            penalties: [],
+            completed: false,
+            recordedAt: null,
+            isRerun: true
+        });
+
+        app.showNotification('Run marked for rerun', 'success');
+
+        // Refresh the display
+        await displayTeamsForRecording(currentEventId);
+
+        // Update home page stats
+        if (typeof updateStats === 'function') {
+            updateStats();
+        }
+    } catch (error) {
+        console.error('Error marking run for rerun:', error);
+        app.showNotification('Error marking run for rerun', 'error');
+    }
+}
+
+/**
  * Navigate to Results page with current event pre-selected
  */
 async function goToResults() {
@@ -524,5 +583,6 @@ window.saveEditedNoTime = saveEditedNoTime;
 window.cancelEdit = cancelEdit;
 window.calculateFinalTime = calculateFinalTime;
 window.goToResults = goToResults;
+window.markForRerun = markForRerun;
 
 console.log('Record page script loaded');

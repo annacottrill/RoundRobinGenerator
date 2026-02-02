@@ -112,6 +112,17 @@
                 padding: 8px 10px;
             }
         }
+
+        /* Required field validation styling - only apply when invalid-field class is added */
+        input.invalid-field {
+            border-color: #ef4444 !important;
+            border-width: 2px !important;
+        }
+
+        input.invalid-field:focus {
+            ring-color: #ef4444 !important;
+            border-color: #ef4444 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50 overflow-x-hidden">
@@ -420,7 +431,7 @@
                                     <span class="tooltip-text">Create a new roping event by entering the event name and date. You'll then select which ropers will participate.</span>
                                 </span>
                             </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Event Name</label>
                                     <input type="text" id="event-name" required
@@ -429,6 +440,20 @@
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Date</label>
                                     <input type="date" id="event-date" required
+                                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium mb-1 flex items-center gap-2">
+                                        Places to Pay
+                                        <span class="tooltip">
+                                            <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="tooltip-text">Number of top places that will receive payouts (e.g., enter "3" to pay top 3 places). Leave empty if paying all participants or if payouts don't apply to this event.</span>
+                                        </span>
+                                    </label>
+                                    <input type="number" id="event-places-to-pay" min="1" value="3" placeholder="Optional"
+                                           oninput="generatePayoutFields()"
                                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                                 </div>
                             </div>
@@ -538,6 +563,78 @@
                                 </div>
                             </div>
 
+                            <!-- Money Management Section -->
+                            <div class="hidden mb-4 p-3 sm:p-4 bg-green-50 border border-green-300 rounded-lg">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-semibold text-base sm:text-lg flex items-center gap-2 text-green-900">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Money Management
+                                        <span class="tooltip">
+                                            <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            <span class="tooltip-text">Toggle to enable money tracking for this event. Configure entry fees, payouts, and stock fees when enabled.</span>
+                                        </span>
+                                    </h4>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="event-money-toggle" class="sr-only peer" onchange="toggleMoneyManagement()">
+                                        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                        <span class="ml-3 text-sm font-medium text-gray-700">Enable</span>
+                                    </label>
+                                </div>
+
+                                <div id="event-money-content" class="hidden">
+                                <!-- Entry Fee and Stock Fee -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Entry Fee (per person)</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                            <input type="number" id="event-entry-fee" min="0" step="0.01" value="150" placeholder="150.00" required
+                                                   oninput="calculateEventMoney()"
+                                                   class="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium mb-1">Stock Fee Percentage</label>
+                                        <div class="relative">
+                                            <input type="number" id="event-stock-fee-percent" min="0" max="100" step="0.1" value="33.3" placeholder="33.3" required
+                                                   oninput="calculateEventMoney()"
+                                                   class="w-full pr-8 pl-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                                            <span class="absolute right-3 top-2 text-gray-500">%</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Payout Fields (dynamically generated) -->
+                                <div id="event-payout-fields" class="mb-4">
+                                    <!-- Payout fields will be generated here based on placesToPay -->
+                                </div>
+
+                                <!-- Calculated Totals (Read-only) -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-green-200">
+                                    <div class="text-sm">
+                                        <span class="text-gray-600">Total Expected Collections:</span>
+                                        <span id="event-total-collections" class="font-bold text-green-700 ml-2">$0.00</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-600">Stock Fee Amount:</span>
+                                        <span id="event-stock-fee-amount" class="font-bold text-green-700 ml-2">$0.00</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-600">Total Payouts:</span>
+                                        <span id="event-total-payouts" class="font-bold text-green-700 ml-2">$0.00</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-600">Total Profit:</span>
+                                        <span id="event-total-keep" class="font-bold text-green-700 ml-2">$0.00</span>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+
                                 <button type="submit"
                                         class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
                                     Generate Event
@@ -573,11 +670,20 @@
                             </h3>
                             <div class="mb-4">
                                 <label class="block text-sm font-medium mb-2">Select Event to Modify</label>
-                                <select id="modify-event-select"
-                                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
-                                        style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
-                                    <option value="">Choose an event...</option>
-                                </select>
+                                <div class="flex gap-2">
+                                    <select id="modify-event-select"
+                                            class="flex-1 px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white appearance-none cursor-pointer hover:border-gray-400 transition-colors"
+                                            style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 24 24%27 stroke=%27%236b7280%27%3E%3Cpath stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%272%27 d=%27M19 9l-7 7-7-7%27/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1.5em 1.5em; padding-right: 2.5rem;">
+                                        <option value="">Choose an event...</option>
+                                    </select>
+                                    <button id="view-participants-btn" onclick="viewSelectedEventParticipants()"
+                                            class="hidden px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors whitespace-nowrap flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                        </svg>
+                                        <span class="hidden sm:inline">View Participants</span>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Event Modification Section -->
@@ -618,7 +724,7 @@
                                     <!-- Active Event Editing View -->
                                     <div id="event-editing-view">
                                         <!-- Event Name and Date Fields -->
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                             <div>
                                                 <label class="block text-sm font-medium mb-1">Event Name</label>
                                                 <input type="text" id="modify-event-name-input"
@@ -628,6 +734,20 @@
                                             <div>
                                                 <label class="block text-sm font-medium mb-1">Event Date</label>
                                                 <input type="date" id="modify-event-date-input"
+                                                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium mb-1 flex items-center gap-2">
+                                                    Places to Pay
+                                                    <span class="tooltip">
+                                                        <svg class="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                        <span class="tooltip-text">Number of top places that will receive payouts. Leave empty if paying all participants or if payouts don't apply.</span>
+                                                    </span>
+                                                </label>
+                                                <input type="number" id="modify-event-places-to-pay" min="1" placeholder="Optional"
+                                                       oninput="generateModifyPayoutFields()"
                                                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                                             </div>
                                         </div>
@@ -698,6 +818,72 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                        <!-- Modify Money Management Section -->
+                                        <div class="hidden mb-4 p-3 sm:p-4 bg-green-50 border border-green-300 rounded-lg">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <h4 class="font-semibold text-base sm:text-lg flex items-center gap-2 text-green-900">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                    Money Management
+                                                </h4>
+                                                <label class="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" id="modify-event-money-toggle" class="sr-only peer" onchange="toggleModifyMoneyManagement()">
+                                                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-700">Enable</span>
+                                                </label>
+                                            </div>
+
+                                            <div id="modify-event-money-content" class="hidden">
+                                            <!-- Entry Fee and Stock Fee -->
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <label class="block text-sm font-medium mb-1">Entry Fee (per person)</label>
+                                                    <div class="relative">
+                                                        <span class="absolute left-3 top-2 text-gray-500">$</span>
+                                                        <input type="number" id="modify-event-entry-fee" min="0" step="0.01" placeholder="0.00" required
+                                                               oninput="calculateModifyEventMoney()"
+                                                               class="w-full pl-7 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-sm font-medium mb-1">Stock Fee Percentage</label>
+                                                    <div class="relative">
+                                                        <input type="number" id="modify-event-stock-fee-percent" min="0" max="100" step="0.1" placeholder="0" required
+                                                               oninput="calculateModifyEventMoney()"
+                                                               class="w-full pr-8 pl-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500">
+                                                        <span class="absolute right-3 top-2 text-gray-500">%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Payout Fields (dynamically generated) -->
+                                            <div id="modify-event-payout-fields" class="mb-4">
+                                                <!-- Payout fields will be generated here based on placesToPay -->
+                                            </div>
+
+                                            <!-- Calculated Totals (Read-only) -->
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-green-200">
+                                                <div class="text-sm">
+                                                    <span class="text-gray-600">Total Expected Collections:</span>
+                                                    <span id="modify-event-total-collections" class="font-bold text-green-700 ml-2">$0.00</span>
+                                                </div>
+                                                <div class="text-sm">
+                                                    <span class="text-gray-600">Stock Fee Amount:</span>
+                                                    <span id="modify-event-stock-fee-amount" class="font-bold text-green-700 ml-2">$0.00</span>
+                                                </div>
+                                                <div class="text-sm">
+                                                    <span class="text-gray-600">Total Payouts:</span>
+                                                    <span id="modify-event-total-payouts" class="font-bold text-green-700 ml-2">$0.00</span>
+                                                </div>
+                                                <div class="text-sm">
+                                                    <span class="text-gray-600">Total Profit:</span>
+                                                    <span id="modify-event-total-keep" class="font-bold text-green-700 ml-2">$0.00</span>
+                                                </div>
+                                            </div>
+                                            </div>
+                                        </div>
 
                                         <div id="event-edit-buttons" class="flex flex-wrap gap-3 mt-4">
                                             <button onclick="updateEvent()"
@@ -1287,6 +1473,61 @@
                         class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled>
                     Clear All Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Participants List Modal -->
+    <div id="participants-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Participants</h3>
+                <button onclick="closeParticipantsModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-3" id="participants-event-info"></p>
+
+                <!-- Participant List -->
+                <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                    <div id="participants-list" class="divide-y divide-gray-200">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Count Summary -->
+                <div class="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="flex justify-between text-sm">
+                        <span class="font-medium text-gray-700">Total Participants:</span>
+                        <span class="font-bold text-gray-900" id="participants-total">0</span>
+                    </div>
+                    <div class="flex justify-between text-sm mt-1">
+                        <span class="text-blue-600">Headers:</span>
+                        <span class="font-semibold text-blue-700" id="participants-headers">0</span>
+                    </div>
+                    <div class="flex justify-between text-sm mt-1">
+                        <span class="text-green-600">Heelers:</span>
+                        <span class="font-semibold text-green-700" id="participants-heelers">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3 justify-end">
+                <button onclick="closeParticipantsModal()"
+                        class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                    Close
+                </button>
+                <button onclick="copyParticipantsList()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Copy List
                 </button>
             </div>
         </div>
