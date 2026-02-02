@@ -683,38 +683,39 @@ async function updateEvent() {
     if (!currentModifyEventId) return;
 
     // Validate all money management fields
-    const entryFeeField = document.getElementById('modify-event-entry-fee');
-    const stockFeeField = document.getElementById('modify-event-stock-fee-percent');
-    const payoutFields = document.querySelectorAll('.modify-payout-field-header, .modify-payout-field-heeler');
+    // DISABLED: Financial tracking hidden
+    // const entryFeeField = document.getElementById('modify-event-entry-fee');
+    // const stockFeeField = document.getElementById('modify-event-stock-fee-percent');
+    // const payoutFields = document.querySelectorAll('.modify-payout-field-header, .modify-payout-field-heeler');
 
-    // Clear previous invalid states
-    [entryFeeField, stockFeeField, ...payoutFields].forEach(field => {
-        if (field) field.classList.remove('invalid-field');
-    });
+    // // Clear previous invalid states
+    // [entryFeeField, stockFeeField, ...payoutFields].forEach(field => {
+    //     if (field) field.classList.remove('invalid-field');
+    // });
 
-    // Check for invalid fields
-    const invalidFields = [];
-    if (!entryFeeField.value || entryFeeField.value <= 0) {
-        entryFeeField.classList.add('invalid-field');
-        invalidFields.push(entryFeeField);
-    }
-    if (stockFeeField.value === '' || stockFeeField.value < 0) {
-        stockFeeField.classList.add('invalid-field');
-        invalidFields.push(stockFeeField);
-    }
-    payoutFields.forEach(field => {
-        if (!field.value || field.value < 0) {
-            field.classList.add('invalid-field');
-            invalidFields.push(field);
-        }
-    });
+    // // Check for invalid fields
+    // const invalidFields = [];
+    // if (!entryFeeField.value || entryFeeField.value <= 0) {
+    //     entryFeeField.classList.add('invalid-field');
+    //     invalidFields.push(entryFeeField);
+    // }
+    // if (stockFeeField.value === '' || stockFeeField.value < 0) {
+    //     stockFeeField.classList.add('invalid-field');
+    //     invalidFields.push(stockFeeField);
+    // }
+    // payoutFields.forEach(field => {
+    //     if (!field.value || field.value < 0) {
+    //         field.classList.add('invalid-field');
+    //         invalidFields.push(field);
+    //     }
+    // });
 
-    if (invalidFields.length > 0) {
-        app.showNotification('Please fill in all required money management fields', 'error');
-        invalidFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        invalidFields[0].focus();
-        return;
-    }
+    // if (invalidFields.length > 0) {
+    //     app.showNotification('Please fill in all required money management fields', 'error');
+    //     invalidFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    //     invalidFields[0].focus();
+    //     return;
+    // }
 
     try {
         // Check if event is completed
