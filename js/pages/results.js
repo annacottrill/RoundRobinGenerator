@@ -4,6 +4,37 @@
  */
 
 /**
+ * Build a config object that drives results rendering based on the event's scoring type.
+ * Centralises column labels, value getters, and formatters so the rest of this file can
+ * stay agnostic of whether scoring is by time or points.
+ */
+function buildScoringConfig(event) {
+    const isPoints = !!(event && event.scoringType === 'points');
+    const fmtPoints = (v) => (v == null) ? '—' : (Number.isInteger(v) ? `${v}` : v.toFixed(2));
+    const fmtAvgPoints = (v) => (v == null) ? '—' : (Number.isInteger(v) ? `${v}` : v.toFixed(1));
+    const fmtTime = (v) => (v == null) ? '—' : `${app.formatTime(v)}s`;
+    return {
+        isPoints,
+        labels: {
+            success: isPoints ? 'Scored' : 'Catch',
+            fail: isPoints ? 'NS' : 'NT',
+            total: isPoints ? 'Total Pts' : 'Total',
+            avg: isPoints ? 'Avg Pts' : 'Avg',
+            best: isPoints ? 'Best Pts' : 'Best',
+            totalLong: isPoints ? 'Total Points' : 'Total Time',
+            avgLong: isPoints ? 'Average Points' : 'Average Time'
+        },
+        getTotal: (s) => isPoints ? s.totalPoints : s.totalTime,
+        getAvg: (s) => isPoints ? s.avgPoints : s.avgTime,
+        getBest: (s) => isPoints ? s.bestPoints : s.bestTime,
+        formatTotal: isPoints ? fmtPoints : fmtTime,
+        formatAvg: isPoints ? fmtAvgPoints : fmtTime,
+        formatBest: isPoints ? fmtPoints : fmtTime,
+        formatRunValue: isPoints ? fmtPoints : fmtTime
+    };
+}
+
+/**
  * Load the results page
  */
 async function loadResultsPage() {
@@ -59,6 +90,7 @@ async function displayResults(eventId) {
         const allRuns = await dbHelpers.getRunsByEvent(eventId);
         const completedRuns = allRuns.filter(r => r.completed);
         const stats = await dbHelpers.getRoperStatistics(eventId);
+        const cfg = buildScoringConfig(event);
 
         const resultsSection = document.getElementById('results-section');
         const resultsContainer = document.getElementById('results-container');
@@ -176,7 +208,7 @@ async function displayResults(eventId) {
                     <div class="mb-4 p-4 bg-blue-50 border border-blue-300 rounded-lg flex justify-between items-center">
                         <div>
                             <p class="text-sm text-blue-800">
-                                <strong>All times recorded!</strong><br>
+                                <strong>All ${cfg.isPoints ? 'scores' : 'times'} recorded!</strong><br>
                                 All ${allRuns.length} runs have been completed. Ready to finalize this event?
                             </p>
                         </div>
@@ -191,13 +223,13 @@ async function displayResults(eventId) {
                     <div class="mb-4 p-4 bg-yellow-50 border border-yellow-300 rounded-lg flex justify-between items-center">
                         <div>
                             <p class="text-sm text-yellow-800">
-                                <strong>⚠ Warning:</strong> Not all times have been entered yet.<br>
+                                <strong>⚠ Warning:</strong> Not all ${cfg.isPoints ? 'scores' : 'times'} have been entered yet.<br>
                                 ${completedRuns.length} of ${allRuns.length} runs completed.
                             </p>
                         </div>
                         <button onclick="goToRecordTimes(${eventId})"
                                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm whitespace-nowrap">
-                            Record Times →
+                            Record Runs →
                         </button>
                     </div>
                 `;
@@ -210,7 +242,7 @@ async function displayResults(eventId) {
                     <p class="text-gray-500 italic mb-4">No completed runs yet.</p>
                     <button onclick="goToRecordTimes(${eventId})"
                             class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
-                        Go to Record Times →
+                        Go to Record Runs →
                     </button>
                 </div>
             `;
@@ -233,35 +265,33 @@ async function displayResults(eventId) {
                                 <th class="border border-blue-200 p-1 sm:p-3 text-left">Rank</th>
                                 <th class="border border-blue-200 p-1 sm:p-3 text-left">Name</th>
                                 <th class="border border-blue-200 p-1 sm:p-3 text-center">Runs</th>
-                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Catch</th>
-                                <th class="border border-blue-200 p-1 sm:p-3 text-center">NT</th>
-                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Total</th>
-                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Avg</th>
-                                <th class="border border-blue-200 p-1 sm:p-3 text-center">Best</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">${cfg.labels.success}</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">${cfg.labels.fail}</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">${cfg.labels.total}</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">${cfg.labels.avg}</th>
+                                <th class="border border-blue-200 p-1 sm:p-3 text-center">${cfg.labels.best}</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${stats.headers.map((header, index, array) => {
-                                // Calculate actual rank based on ties
+                                // Calculate actual rank based on ties (uses mode-appropriate average)
                                 let actualRank = 1;
                                 for (let i = 0; i < index; i++) {
-                                    if (array[i].catches !== header.catches || Math.abs(array[i].avgTime - header.avgTime) > 0.001) {
+                                    if (array[i].catches !== header.catches || Math.abs(cfg.getAvg(array[i]) - cfg.getAvg(header)) > 0.001) {
                                         actualRank = i + 2;
                                     }
                                 }
 
-                                // Check if tied with previous
                                 let isTied = false;
                                 if (index > 0) {
                                     const prev = array[index - 1];
-                                    isTied = prev.catches === header.catches && Math.abs(prev.avgTime - header.avgTime) < 0.001;
+                                    isTied = prev.catches === header.catches && Math.abs(cfg.getAvg(prev) - cfg.getAvg(header)) < 0.001;
                                 }
 
                                 if (!isTied && index > 0) {
                                     actualRank = index + 1;
                                 }
 
-                                // Determine if this rank is in the money
                                 const isPayingPlace = event.placesToPay && actualRank <= event.placesToPay && header.catches > 0;
 
                                 let rankBadge = `<span class="font-bold text-gray-700">${actualRank}</span>`;
@@ -273,7 +303,6 @@ async function displayResults(eventId) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-400 text-orange-900 font-bold">3</span>`;
                                 }
 
-                                // Determine row styling - paying places get subtle gold background
                                 let rowClass = '';
                                 if (isPayingPlace) {
                                     rowClass = 'bg-amber-50 font-semibold border-l-4 border-amber-400';
@@ -288,9 +317,9 @@ async function displayResults(eventId) {
                                         <td class="border border-blue-200 p-1 sm:p-3 text-center font-bold text-gray-700">${header.totalRuns}</td>
                                         <td class="border border-blue-200 p-1 sm:p-3 text-center font-bold text-green-600">${header.catches}</td>
                                         <td class="border border-blue-200 p-1 sm:p-3 text-center ${header.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${header.noTimes}</td>
-                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</td>
-                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</td>
-                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.bestTime ? app.formatTime(header.bestTime) + 's' : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? cfg.formatTotal(cfg.getTotal(header)) : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${header.catches > 0 ? cfg.formatAvg(cfg.getAvg(header)) : '—'}</td>
+                                        <td class="border border-blue-200 p-1 sm:p-3 text-center font-mono">${cfg.getBest(header) != null ? cfg.formatBest(cfg.getBest(header)) : '—'}</td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -314,35 +343,32 @@ async function displayResults(eventId) {
                                 <th class="border border-green-200 p-1 sm:p-3 text-left">Rank</th>
                                 <th class="border border-green-200 p-1 sm:p-3 text-left">Name</th>
                                 <th class="border border-green-200 p-1 sm:p-3 text-center">Runs</th>
-                                <th class="border border-green-200 p-1 sm:p-3 text-center">Catch</th>
-                                <th class="border border-green-200 p-1 sm:p-3 text-center">NT</th>
-                                <th class="border border-green-200 p-1 sm:p-3 text-center">Total</th>
-                                <th class="border border-green-200 p-1 sm:p-3 text-center">Avg</th>
-                                <th class="border border-green-200 p-1 sm:p-3 text-center">Best</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">${cfg.labels.success}</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">${cfg.labels.fail}</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">${cfg.labels.total}</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">${cfg.labels.avg}</th>
+                                <th class="border border-green-200 p-1 sm:p-3 text-center">${cfg.labels.best}</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${stats.heelers.map((heeler, index, array) => {
-                                // Calculate actual rank based on ties
                                 let actualRank = 1;
                                 for (let i = 0; i < index; i++) {
-                                    if (array[i].catches !== heeler.catches || Math.abs(array[i].avgTime - heeler.avgTime) > 0.001) {
+                                    if (array[i].catches !== heeler.catches || Math.abs(cfg.getAvg(array[i]) - cfg.getAvg(heeler)) > 0.001) {
                                         actualRank = i + 2;
                                     }
                                 }
 
-                                // Check if tied with previous
                                 let isTied = false;
                                 if (index > 0) {
                                     const prev = array[index - 1];
-                                    isTied = prev.catches === heeler.catches && Math.abs(prev.avgTime - heeler.avgTime) < 0.001;
+                                    isTied = prev.catches === heeler.catches && Math.abs(cfg.getAvg(prev) - cfg.getAvg(heeler)) < 0.001;
                                 }
 
                                 if (!isTied && index > 0) {
                                     actualRank = index + 1;
                                 }
 
-                                // Determine if this rank is in the money
                                 const isPayingPlace = event.placesToPay && actualRank <= event.placesToPay && heeler.catches > 0;
 
                                 let rankBadge = `<span class="font-bold text-gray-700">${actualRank}</span>`;
@@ -354,7 +380,6 @@ async function displayResults(eventId) {
                                     rankBadge = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-400 text-orange-900 font-bold">3</span>`;
                                 }
 
-                                // Determine row styling - paying places get subtle gold background
                                 let rowClass = '';
                                 if (isPayingPlace) {
                                     rowClass = 'bg-amber-50 font-semibold border-l-4 border-amber-400';
@@ -369,9 +394,9 @@ async function displayResults(eventId) {
                                         <td class="border border-green-200 p-1 sm:p-3 text-center font-bold text-gray-700">${heeler.totalRuns}</td>
                                         <td class="border border-green-200 p-1 sm:p-3 text-center font-bold text-green-600">${heeler.catches}</td>
                                         <td class="border border-green-200 p-1 sm:p-3 text-center ${heeler.noTimes > 0 ? 'text-red-600' : 'text-gray-400'}">${heeler.noTimes}</td>
-                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</td>
-                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</td>
-                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.bestTime ? app.formatTime(heeler.bestTime) + 's' : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? cfg.formatTotal(cfg.getTotal(heeler)) : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${heeler.catches > 0 ? cfg.formatAvg(cfg.getAvg(heeler)) : '—'}</td>
+                                        <td class="border border-green-200 p-1 sm:p-3 text-center font-mono">${cfg.getBest(heeler) != null ? cfg.formatBest(cfg.getBest(heeler)) : '—'}</td>
                                     </tr>
                                 `;
                             }).join('')}
@@ -382,7 +407,7 @@ async function displayResults(eventId) {
         `;
 
         // Individual Statistics
-        html += await generateIndividualStatistics(eventId, stats);
+        html += await generateIndividualStatistics(eventId, stats, event, cfg);
 
         // Export button
         html += `
@@ -406,46 +431,55 @@ async function displayResults(eventId) {
 }
 
 /**
- * Generate individual statistics section showing all times per roper
+ * Generate individual statistics section showing each roper's per-run results.
+ * Branches on the event's scoring type so points events use points values/labels.
  * @param {number} eventId - Event ID
  * @param {Object} stats - Statistics object with headers and heelers
+ * @param {Object} event - Event record (for scoringType/pointsTracking)
+ * @param {Object} cfg - Config from buildScoringConfig(event)
  * @returns {Promise<string>} - HTML string
  */
-async function generateIndividualStatistics(eventId, stats) {
+async function generateIndividualStatistics(eventId, stats, event, cfg) {
     const runs = await dbHelpers.getRunsWithRopers(eventId);
+    const isSeparatePoints = cfg.isPoints && event.pointsTracking === 'separate';
 
     // Group runs by roper
     const headerRuns = {};
     const heelerRuns = {};
 
     runs.forEach(run => {
-        if (run.completed) {
-            // Group by header
-            if (!headerRuns[run.headerId]) {
-                headerRuns[run.headerId] = {
-                    name: run.headerName,
-                    runs: []
-                };
-            }
-            headerRuns[run.headerId].runs.push({
-                partner: run.heelerName,
-                time: run.time,
-                isCatch: run.time !== null && run.time < 999999
-            });
+        if (!run.completed) return;
 
-            // Group by heeler
-            if (!heelerRuns[run.heelerId]) {
-                heelerRuns[run.heelerId] = {
-                    name: run.heelerName,
-                    runs: []
-                };
-            }
-            heelerRuns[run.heelerId].runs.push({
-                partner: run.headerName,
-                time: run.time,
-                isCatch: run.time !== null && run.time < 999999
-            });
+        let headerValue, heelerValue, headerHas, heelerHas;
+        if (cfg.isPoints) {
+            headerValue = isSeparatePoints ? run.headerPoints : run.points;
+            heelerValue = isSeparatePoints ? run.heelerPoints : run.points;
+            headerHas = headerValue !== null && headerValue !== undefined;
+            heelerHas = heelerValue !== null && heelerValue !== undefined;
+        } else {
+            headerValue = run.time;
+            heelerValue = run.time;
+            headerHas = run.time !== null && run.time < 999999;
+            heelerHas = headerHas;
         }
+
+        if (!headerRuns[run.headerId]) {
+            headerRuns[run.headerId] = { name: run.headerName, runs: [] };
+        }
+        headerRuns[run.headerId].runs.push({
+            partner: run.heelerName,
+            value: headerValue,
+            isCatch: headerHas
+        });
+
+        if (!heelerRuns[run.heelerId]) {
+            heelerRuns[run.heelerId] = { name: run.heelerName, runs: [] };
+        }
+        heelerRuns[run.heelerId].runs.push({
+            partner: run.headerName,
+            value: heelerValue,
+            isCatch: heelerHas
+        });
     });
 
     let html = `
@@ -471,22 +505,22 @@ async function generateIndividualStatistics(eventId, stats) {
                                         ${roperRuns.runs.map(run => `
                                             <div class="flex justify-between items-center py-1 border-b border-blue-100 last:border-0">
                                                 <span class="text-gray-700">w/ ${run.partner}</span>
-                                                <span class="font-mono ${run.isCatch ? 'text-green-600 font-semibold' : 'text-red-600'}">${run.isCatch ? app.formatTime(run.time) + 's' : 'NT'}</span>
+                                                <span class="font-mono ${run.isCatch ? 'text-green-600 font-semibold' : 'text-red-600'}">${run.isCatch ? cfg.formatRunValue(run.value) : cfg.labels.fail}</span>
                                             </div>
                                         `).join('')}
                                     </div>
                                     <div class="mt-3 pt-3 border-t border-blue-200 space-y-1">
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Catches / No Times:</span>
+                                            <span class="text-gray-700">${cfg.labels.success} / ${cfg.labels.fail}:</span>
                                             <span>${header.catches} / ${header.noTimes}</span>
                                         </div>
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Total Time:</span>
-                                            <span class="text-blue-700">${header.catches > 0 ? app.formatTime(header.totalTime) + 's' : '—'}</span>
+                                            <span class="text-gray-700">${cfg.labels.totalLong}:</span>
+                                            <span class="text-blue-700">${header.catches > 0 ? cfg.formatTotal(cfg.getTotal(header)) : '—'}</span>
                                         </div>
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Average Time:</span>
-                                            <span class="text-blue-700">${header.catches > 0 ? app.formatTime(header.avgTime) + 's' : '—'}</span>
+                                            <span class="text-gray-700">${cfg.labels.avgLong}:</span>
+                                            <span class="text-blue-700">${header.catches > 0 ? cfg.formatAvg(cfg.getAvg(header)) : '—'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -513,22 +547,22 @@ async function generateIndividualStatistics(eventId, stats) {
                                         ${roperRuns.runs.map(run => `
                                             <div class="flex justify-between items-center py-1 border-b border-green-100 last:border-0">
                                                 <span class="text-gray-700">w/ ${run.partner}</span>
-                                                <span class="font-mono ${run.isCatch ? 'text-green-600 font-semibold' : 'text-red-600'}">${run.isCatch ? app.formatTime(run.time) + 's' : 'NT'}</span>
+                                                <span class="font-mono ${run.isCatch ? 'text-green-600 font-semibold' : 'text-red-600'}">${run.isCatch ? cfg.formatRunValue(run.value) : cfg.labels.fail}</span>
                                             </div>
                                         `).join('')}
                                     </div>
                                     <div class="mt-3 pt-3 border-t border-green-200 space-y-1">
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Catches / No Times:</span>
+                                            <span class="text-gray-700">${cfg.labels.success} / ${cfg.labels.fail}:</span>
                                             <span>${heeler.catches} / ${heeler.noTimes}</span>
                                         </div>
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Total Time:</span>
-                                            <span class="text-green-700">${heeler.catches > 0 ? app.formatTime(heeler.totalTime) + 's' : '—'}</span>
+                                            <span class="text-gray-700">${cfg.labels.totalLong}:</span>
+                                            <span class="text-green-700">${heeler.catches > 0 ? cfg.formatTotal(cfg.getTotal(heeler)) : '—'}</span>
                                         </div>
                                         <div class="flex justify-between text-sm font-semibold">
-                                            <span class="text-gray-700">Average Time:</span>
-                                            <span class="text-green-700">${heeler.catches > 0 ? app.formatTime(heeler.avgTime) + 's' : '—'}</span>
+                                            <span class="text-gray-700">${cfg.labels.avgLong}:</span>
+                                            <span class="text-green-700">${heeler.catches > 0 ? cfg.formatAvg(cfg.getAvg(heeler)) : '—'}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -552,6 +586,10 @@ async function exportResultsToCSV(eventId) {
         const event = await dbHelpers.getEvent(eventId);
         const stats = await dbHelpers.getRoperStatistics(eventId);
         const runs = await dbHelpers.getRunsWithRopers(eventId);
+        const cfg = buildScoringConfig(event);
+        const isSeparatePoints = cfg.isPoints && event.pointsTracking === 'separate';
+
+        const fmtNum = (v) => v == null ? 'N/A' : (Number.isInteger(v) ? `${v}` : v.toFixed(2));
 
         // Create CSV content
         let csv = '';
@@ -560,49 +598,78 @@ async function exportResultsToCSV(eventId) {
         csv += `Event: ${event.name}\n`;
         csv += `Date: ${app.formatDate(event.date)}\n`;
         csv += `Status: ${event.status === 'completed' ? 'Completed' : 'Active'}\n`;
+        csv += `Scoring: ${cfg.isPoints ? `Points (${event.pointsTracking || 'together'})` : 'Time'}\n`;
         csv += `\n`;
 
         // Header Rankings
+        const rankingHeader = cfg.isPoints
+            ? `Rank,Name,Scored,No Score,Total Points,Avg Points,Best Points\n`
+            : `Rank,Name,Catches,No Times,Total Time,Avg Time,Best Time\n`;
+
         csv += `HEADER RANKINGS\n`;
-        csv += `Rank,Name,Catches,No Times,Total Time,Avg Time,Best Time\n`;
+        csv += rankingHeader;
         stats.headers.forEach((header, index) => {
             csv += `${index + 1},`;
             csv += `"${header.name}",`;
             csv += `${header.catches},`;
             csv += `${header.noTimes},`;
-            csv += `${header.catches > 0 ? header.totalTime.toFixed(2) : 'N/A'},`;
-            csv += `${header.catches > 0 ? header.avgTime.toFixed(2) : 'N/A'},`;
-            csv += `${header.bestTime ? header.bestTime.toFixed(2) : 'N/A'}\n`;
+            csv += `${header.catches > 0 ? fmtNum(cfg.getTotal(header)) : 'N/A'},`;
+            csv += `${header.catches > 0 ? fmtNum(cfg.getAvg(header)) : 'N/A'},`;
+            csv += `${fmtNum(cfg.getBest(header))}\n`;
         });
         csv += `\n`;
 
         // Heeler Rankings
         csv += `HEELER RANKINGS\n`;
-        csv += `Rank,Name,Catches,No Times,Total Time,Avg Time,Best Time\n`;
+        csv += rankingHeader;
         stats.heelers.forEach((heeler, index) => {
             csv += `${index + 1},`;
             csv += `"${heeler.name}",`;
             csv += `${heeler.catches},`;
             csv += `${heeler.noTimes},`;
-            csv += `${heeler.catches > 0 ? heeler.totalTime.toFixed(2) : 'N/A'},`;
-            csv += `${heeler.catches > 0 ? heeler.avgTime.toFixed(2) : 'N/A'},`;
-            csv += `${heeler.bestTime ? heeler.bestTime.toFixed(2) : 'N/A'}\n`;
+            csv += `${heeler.catches > 0 ? fmtNum(cfg.getTotal(heeler)) : 'N/A'},`;
+            csv += `${heeler.catches > 0 ? fmtNum(cfg.getAvg(heeler)) : 'N/A'},`;
+            csv += `${fmtNum(cfg.getBest(heeler))}\n`;
         });
         csv += `\n`;
 
         // All Runs Detail
         csv += `ALL RUNS\n`;
-        csv += `Team #,Header,Heeler,Time,Status\n`;
+        if (cfg.isPoints && isSeparatePoints) {
+            csv += `Team #,Header,Heeler,Header Points,Heeler Points,Status\n`;
+        } else if (cfg.isPoints) {
+            csv += `Team #,Header,Heeler,Points,Status\n`;
+        } else {
+            csv += `Team #,Header,Heeler,Time,Status\n`;
+        }
         runs.forEach((run, index) => {
             csv += `${index + 1},`;
             csv += `"${run.headerName}",`;
             csv += `"${run.heelerName}",`;
             if (run.completed) {
-                const isCatch = run.time !== null && run.time < 999999;
-                csv += `${isCatch ? run.time.toFixed(2) : 'NT'},`;
-                csv += `${isCatch ? 'Completed' : 'No Time'}\n`;
+                if (cfg.isPoints) {
+                    if (isSeparatePoints) {
+                        const hHas = run.headerPoints !== null && run.headerPoints !== undefined;
+                        const eHas = run.heelerPoints !== null && run.heelerPoints !== undefined;
+                        csv += `${hHas ? fmtNum(run.headerPoints) : 'NS'},`;
+                        csv += `${eHas ? fmtNum(run.heelerPoints) : 'NS'},`;
+                        csv += `${hHas || eHas ? 'Completed' : 'No Score'}\n`;
+                    } else {
+                        const has = run.points !== null && run.points !== undefined;
+                        csv += `${has ? fmtNum(run.points) : 'NS'},`;
+                        csv += `${has ? 'Completed' : 'No Score'}\n`;
+                    }
+                } else {
+                    const isCatch = run.time !== null && run.time < 999999;
+                    csv += `${isCatch ? run.time.toFixed(2) : 'NT'},`;
+                    csv += `${isCatch ? 'Completed' : 'No Time'}\n`;
+                }
             } else {
-                csv += `N/A,Pending\n`;
+                if (cfg.isPoints && isSeparatePoints) {
+                    csv += `N/A,N/A,Pending\n`;
+                } else {
+                    csv += `N/A,Pending\n`;
+                }
             }
         });
 
