@@ -13,6 +13,32 @@ let lastCreatedEventId = null;
 let persistentSelectedRopers = [];
 
 /**
+ * Show/hide the points-tracking sub-toggle and the penalties section on the create form based on scoring type.
+ * Penalties are hidden (not deleted) when scoring by points — they may return.
+ */
+function updateScoringTypeUI() {
+    const scoringType = document.querySelector('input[name="event-scoring-type"]:checked')?.value || 'time';
+    const isPoints = scoringType === 'points';
+    const trackingSection = document.getElementById('points-tracking-section');
+    if (trackingSection) trackingSection.classList.toggle('hidden', !isPoints);
+    const penaltiesSection = document.getElementById('event-penalties-section');
+    if (penaltiesSection) penaltiesSection.classList.toggle('hidden', isPoints);
+}
+
+/**
+ * Show/hide the points-tracking sub-toggle and the penalties section on the modify form based on scoring type.
+ * Penalties are hidden (not deleted) when scoring by points — they may return.
+ */
+function updateModifyScoringTypeUI() {
+    const scoringType = document.querySelector('input[name="modify-event-scoring-type"]:checked')?.value || 'time';
+    const isPoints = scoringType === 'points';
+    const trackingSection = document.getElementById('modify-points-tracking-section');
+    if (trackingSection) trackingSection.classList.toggle('hidden', !isPoints);
+    const penaltiesSection = document.getElementById('event-modification-penalties');
+    if (penaltiesSection) penaltiesSection.classList.toggle('hidden', isPoints);
+}
+
+/**
  * Load the events page
  */
 async function loadEventsPage() {
@@ -25,6 +51,7 @@ async function loadEventsPage() {
         // Reset and hide the create event form sections
         document.getElementById('create-event-form').reset();
         document.getElementById('pairings-section').classList.add('hidden');
+        updateScoringTypeUI();
 
         // Reset and hide the modify event section
         document.getElementById('modify-event-select').value = '';
@@ -305,6 +332,12 @@ async function handleCreateEvent(e) {
         const stockFeePercent = parseFloat(document.getElementById('event-stock-fee-percent').value) || null;
         const payouts = getPayouts();
 
+        // Scoring type (time or points) and, for points, header/heeler tracking mode
+        const scoringType = document.querySelector('input[name="event-scoring-type"]:checked')?.value || 'time';
+        const pointsTracking = scoringType === 'points'
+            ? (document.querySelector('input[name="event-points-tracking"]:checked')?.value || 'together')
+            : null;
+
         // Create event
         const eventId = await dbHelpers.createEvent({
             name: eventName,
@@ -315,7 +348,9 @@ async function handleCreateEvent(e) {
             placesToPay: placesToPay,
             entryFee: entryFee,
             stockFeePercent: stockFeePercent,
-            payouts: payouts
+            payouts: payouts,
+            scoringType: scoringType,
+            pointsTracking: pointsTracking
         });
 
         // Store the event ID for Begin Event button
@@ -488,6 +523,18 @@ async function loadEventForModification(eventId) {
         document.getElementById('modify-event-name-input').value = event.name;
         document.getElementById('modify-event-date-input').value = event.date;
         document.getElementById('modify-event-places-to-pay').value = event.placesToPay || '';
+
+        // Set scoring type radio
+        const scoringType = event.scoringType || 'time';
+        const scoringRadio = document.querySelector(`input[name="modify-event-scoring-type"][value="${scoringType}"]`);
+        if (scoringRadio) scoringRadio.checked = true;
+
+        // Set points tracking radio (defaults to 'together' if missing)
+        const pointsTracking = event.pointsTracking || 'together';
+        const trackingRadio = document.querySelector(`input[name="modify-event-points-tracking"][value="${pointsTracking}"]`);
+        if (trackingRadio) trackingRadio.checked = true;
+
+        updateModifyScoringTypeUI();
 
         // Populate money management fields
         document.getElementById('modify-event-entry-fee').value = event.entryFee || '';
@@ -737,6 +784,12 @@ async function updateEvent() {
         const stockFeePercent = parseFloat(document.getElementById('modify-event-stock-fee-percent').value) || null;
         const payouts = getModifyPayouts();
 
+        // Scoring type (time or points) and, for points, header/heeler tracking mode
+        const scoringType = document.querySelector('input[name="modify-event-scoring-type"]:checked')?.value || 'time';
+        const pointsTracking = scoringType === 'points'
+            ? (document.querySelector('input[name="modify-event-points-tracking"]:checked')?.value || 'together')
+            : null;
+
         // Get selected ropers
         const selectedRopers = Array.from(document.querySelectorAll('input[name="modify-roper"]:checked'))
             .map(cb => parseInt(cb.value));
@@ -809,7 +862,9 @@ async function updateEvent() {
                 placesToPay: placesToPay,
                 entryFee: entryFee,
                 stockFeePercent: stockFeePercent,
-                payouts: payouts
+                payouts: payouts,
+                scoringType: scoringType,
+                pointsTracking: pointsTracking
             });
 
             // Create new run records
@@ -849,7 +904,9 @@ async function updateEvent() {
                 placesToPay: placesToPay,
                 entryFee: entryFee,
                 stockFeePercent: stockFeePercent,
-                payouts: payouts
+                payouts: payouts,
+                scoringType: scoringType,
+                pointsTracking: pointsTracking
             });
 
             app.showNotification('Event updated! All recorded times have been cleared due to penalty changes.', 'success');
@@ -861,7 +918,9 @@ async function updateEvent() {
                 placesToPay: placesToPay,
                 entryFee: entryFee,
                 stockFeePercent: stockFeePercent,
-                payouts: payouts
+                payouts: payouts,
+                scoringType: scoringType,
+                pointsTracking: pointsTracking
             });
 
             app.showNotification('Event updated successfully!', 'success');

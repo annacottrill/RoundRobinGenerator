@@ -230,6 +230,8 @@ const dbHelpers = {
             entryFee: event.entryFee || null, // Entry fee per person
             stockFeePercent: event.stockFeePercent || null, // Stock fee percentage
             payouts: event.payouts || [], // Array of payout objects [{place, headerAmount, heelerAmount}]
+            scoringType: event.scoringType || 'time', // 'time' or 'points'
+            pointsTracking: event.pointsTracking || null, // 'together' or 'separate' (only used when scoringType === 'points')
             createdAt: new Date(),
             status: 'active' // 'active' or 'completed'
         });
@@ -310,6 +312,28 @@ const dbHelpers = {
     },
 
     /**
+     * Record points for a run (points-based events).
+     * For "together" tracking, pass { points }. For "separate", pass { headerPoints, heelerPoints }.
+     * Pass nulls to record "No Score".
+     * @param {number} runId - Run ID
+     * @param {Object} pointsData - { points?, headerPoints?, heelerPoints? }
+     * @returns {Promise<number>} - Number of records updated
+     */
+    async recordRunPoints(runId, pointsData) {
+        return await db.runs.update(runId, {
+            points: pointsData.points ?? null,
+            headerPoints: pointsData.headerPoints ?? null,
+            heelerPoints: pointsData.heelerPoints ?? null,
+            rawTime: null,
+            time: null,
+            penalties: [],
+            completed: true,
+            recordedAt: new Date(),
+            isRerun: false
+        });
+    },
+
+    /**
      * Get all runs for an event
      * @param {number} eventId - Event ID
      * @returns {Promise<Array>} - Array of runs for the event
@@ -369,94 +393,102 @@ const dbHelpers = {
      * @returns {Promise<Object>} - Object with headers and heelers arrays
      */
     async getRoperStatistics(eventId) {
+        const event = await this.getEvent(eventId);
         const runs = await this.getRunsWithRopers(eventId);
+        const isPoints = !!(event && event.scoringType === 'points');
+        const isSeparatePoints = isPoints && event.pointsTracking === 'separate';
 
-        // Track stats for each roper
         const headerStats = {};
         const heelerStats = {};
 
+        const initStat = (id, name, skill) => ({
+            id,
+            name,
+            skillLevel: skill,
+            catches: 0,       // # of "scored"/completed-with-result runs (used for both modes)
+            noTimes: 0,       // # of NT (time) or NS (points) runs
+            totalRuns: 0,
+            totalTime: 0,     // time mode
+            times: [],        // time mode
+            totalPoints: 0,   // points mode
+            points: []        // points mode
+        });
+
         runs.forEach(run => {
-            // Track header stats
-            if (!headerStats[run.headerId]) {
-                headerStats[run.headerId] = {
-                    id: run.headerId,
-                    name: run.headerName,
-                    skillLevel: run.headerSkill,
-                    catches: 0,
-                    noTimes: 0,
-                    totalRuns: 0,
-                    totalTime: 0,
-                    times: []
-                };
-            }
+            if (!headerStats[run.headerId]) headerStats[run.headerId] = initStat(run.headerId, run.headerName, run.headerSkill);
+            if (!heelerStats[run.heelerId]) heelerStats[run.heelerId] = initStat(run.heelerId, run.heelerName, run.heelerSkill);
 
-            // Track heeler stats
-            if (!heelerStats[run.heelerId]) {
-                heelerStats[run.heelerId] = {
-                    id: run.heelerId,
-                    name: run.heelerName,
-                    skillLevel: run.heelerSkill,
-                    catches: 0,
-                    noTimes: 0,
-                    totalRuns: 0,
-                    totalTime: 0,
-                    times: []
-                };
-            }
+            if (isPoints) {
+                const headerPts = isSeparatePoints ? run.headerPoints : run.points;
+                const heelerPts = isSeparatePoints ? run.heelerPoints : run.points;
+                const headerHas = run.completed && headerPts !== null && headerPts !== undefined;
+                const heelerHas = run.completed && heelerPts !== null && heelerPts !== undefined;
 
-            // Determine run status
-            // isCatch: completed run with valid time
-            // isNoTime: completed run with no time or time >= 999999
-            // incomplete: not completed at all (no time entered yet)
-            const isCatch = run.completed && run.time !== null && run.time < 999999;
-            const isExplicitNoTime = run.completed && (run.time === null || run.time >= 999999);
-            const isIncomplete = !run.completed;
+                if (run.completed) {
+                    headerStats[run.headerId].totalRuns++;
+                    heelerStats[run.heelerId].totalRuns++;
+                }
+                if (headerHas) {
+                    headerStats[run.headerId].catches++;
+                    headerStats[run.headerId].totalPoints += headerPts;
+                    headerStats[run.headerId].points.push(headerPts);
+                } else {
+                    headerStats[run.headerId].noTimes++;
+                }
+                if (heelerHas) {
+                    heelerStats[run.heelerId].catches++;
+                    heelerStats[run.heelerId].totalPoints += heelerPts;
+                    heelerStats[run.heelerId].points.push(heelerPts);
+                } else {
+                    heelerStats[run.heelerId].noTimes++;
+                }
+            } else {
+                // Time mode (original logic)
+                const isCatch = run.completed && run.time !== null && run.time < 999999;
+                const isExplicitNoTime = run.completed && (run.time === null || run.time >= 999999);
+                const isIncomplete = !run.completed;
 
-            // Update header stats
-            if (run.completed) {
-                headerStats[run.headerId].totalRuns++;
-            }
-            if (isCatch) {
-                headerStats[run.headerId].catches++;
-                headerStats[run.headerId].totalTime += run.time;
-                headerStats[run.headerId].times.push(run.time);
-            } else if (isExplicitNoTime || isIncomplete) {
-                headerStats[run.headerId].noTimes++;
-            }
-
-            // Update heeler stats
-            if (run.completed) {
-                heelerStats[run.heelerId].totalRuns++;
-            }
-            if (isCatch) {
-                heelerStats[run.heelerId].catches++;
-                heelerStats[run.heelerId].totalTime += run.time;
-                heelerStats[run.heelerId].times.push(run.time);
-            } else if (isExplicitNoTime || isIncomplete) {
-                heelerStats[run.heelerId].noTimes++;
+                if (run.completed) {
+                    headerStats[run.headerId].totalRuns++;
+                    heelerStats[run.heelerId].totalRuns++;
+                }
+                if (isCatch) {
+                    headerStats[run.headerId].catches++;
+                    headerStats[run.headerId].totalTime += run.time;
+                    headerStats[run.headerId].times.push(run.time);
+                    heelerStats[run.heelerId].catches++;
+                    heelerStats[run.heelerId].totalTime += run.time;
+                    heelerStats[run.heelerId].times.push(run.time);
+                } else if (isExplicitNoTime || isIncomplete) {
+                    headerStats[run.headerId].noTimes++;
+                    heelerStats[run.heelerId].noTimes++;
+                }
             }
         });
 
-        // Calculate averages and sort
         const processStats = (stats) => {
             return Object.values(stats).map(stat => ({
                 ...stat,
                 avgTime: stat.catches > 0 ? stat.totalTime / stat.catches : 999999,
-                bestTime: stat.times.length > 0 ? Math.min(...stat.times) : null
+                bestTime: stat.times.length > 0 ? Math.min(...stat.times) : null,
+                avgPoints: stat.catches > 0 ? stat.totalPoints / stat.catches : 0,
+                bestPoints: stat.points.length > 0 ? Math.max(...stat.points) : null
             })).sort((a, b) => {
-                // Sort by catches (descending), then by average time (ascending), then alphabetically by name
-                if (b.catches !== a.catches) {
-                    return b.catches - a.catches;
+                // Most successful entries first
+                if (b.catches !== a.catches) return b.catches - a.catches;
+                if (isPoints) {
+                    // Higher average points wins
+                    if (Math.abs(a.avgPoints - b.avgPoints) > 0.001) return b.avgPoints - a.avgPoints;
+                } else {
+                    // Lower average time wins
+                    if (Math.abs(a.avgTime - b.avgTime) > 0.001) return a.avgTime - b.avgTime;
                 }
-                if (Math.abs(a.avgTime - b.avgTime) > 0.001) {
-                    return a.avgTime - b.avgTime;
-                }
-                // If catches and avgTime are the same, sort alphabetically
                 return a.name.localeCompare(b.name);
             });
         };
 
         return {
+            scoringMode: isPoints ? 'points' : 'time',
             headers: processStats(headerStats),
             heelers: processStats(heelerStats)
         };

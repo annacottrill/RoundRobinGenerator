@@ -125,7 +125,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 overflow-x-hidden">
+<body class="bg-gray-50 overflow-x-clip">
     <!-- Main App Container -->
     <div id="app" class="min-h-screen flex">
 
@@ -176,7 +176,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <span>Record Times</span>
+                            <span>Record Runs</span>
                         </a>
                     </li>
                     <li>
@@ -242,7 +242,7 @@
             </header>
 
             <!-- Main Content Area -->
-            <main class="flex-grow container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-full overflow-x-hidden">
+            <main class="flex-grow container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-full overflow-x-clip">
 
             <!-- Home Page -->
             <div id="page-home" class="page active">
@@ -422,6 +422,44 @@
 
                             <!-- Create Event Form -->
                             <form id="create-event-form" class="p-2 sm:p-4 bg-white rounded-lg">
+                                <!-- Scoring Type Toggle -->
+                                <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <label class="block text-sm font-semibold mb-2 text-blue-900">Scoring Type</label>
+                                    <div class="inline-flex rounded-lg bg-white border-2 border-blue-300 overflow-hidden" role="group">
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="event-scoring-type" value="time" class="sr-only peer" checked onchange="updateScoringTypeUI()">
+                                            <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                Time
+                                            </span>
+                                        </label>
+                                        <label class="cursor-pointer border-l-2 border-blue-300">
+                                            <input type="radio" name="event-scoring-type" value="points" class="sr-only peer" onchange="updateScoringTypeUI()">
+                                            <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                Points
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    <!-- Points Tracking Sub-Toggle -->
+                                    <div id="points-tracking-section" class="hidden mt-3 pt-3 border-t border-blue-200">
+                                        <label class="block text-sm font-semibold mb-2 text-blue-900">Track Headers &amp; Heelers</label>
+                                        <div class="inline-flex rounded-lg bg-white border-2 border-blue-300 overflow-hidden" role="group">
+                                            <label class="cursor-pointer">
+                                                <input type="radio" name="event-points-tracking" value="together" class="sr-only peer" checked>
+                                                <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                    Together
+                                                </span>
+                                            </label>
+                                            <label class="cursor-pointer border-l-2 border-blue-300">
+                                                <input type="radio" name="event-points-tracking" value="separate" class="sr-only peer">
+                                                <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                    Separate
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <h4 class="font-semibold mb-3 text-base sm:text-lg flex items-center gap-2">
                                     Event Details
                                 <span class="tooltip">
@@ -459,7 +497,7 @@
                             </div>
 
                             <!-- Penalties Section -->
-                            <div class="mb-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
+                            <div id="event-penalties-section" class="mb-4 p-2 sm:p-4 bg-gray-50 rounded-lg">
                                 <div class="flex justify-between items-center mb-3">
                                     <label class="block text-sm font-medium flex items-center gap-2">
                                         Penalties
@@ -723,6 +761,44 @@
 
                                     <!-- Active Event Editing View -->
                                     <div id="event-editing-view">
+                                        <!-- Scoring Type Toggle -->
+                                        <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                            <label class="block text-sm font-semibold mb-2 text-blue-900">Scoring Type</label>
+                                            <div class="inline-flex rounded-lg bg-white border-2 border-blue-300 overflow-hidden" role="group">
+                                                <label class="cursor-pointer">
+                                                    <input type="radio" name="modify-event-scoring-type" value="time" class="sr-only peer" checked onchange="updateModifyScoringTypeUI()">
+                                                    <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                        Time
+                                                    </span>
+                                                </label>
+                                                <label class="cursor-pointer border-l-2 border-blue-300">
+                                                    <input type="radio" name="modify-event-scoring-type" value="points" class="sr-only peer" onchange="updateModifyScoringTypeUI()">
+                                                    <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                        Points
+                                                    </span>
+                                                </label>
+                                            </div>
+
+                                            <!-- Points Tracking Sub-Toggle -->
+                                            <div id="modify-points-tracking-section" class="hidden mt-3 pt-3 border-t border-blue-200">
+                                                <label class="block text-sm font-semibold mb-2 text-blue-900">Track Headers &amp; Heelers</label>
+                                                <div class="inline-flex rounded-lg bg-white border-2 border-blue-300 overflow-hidden" role="group">
+                                                    <label class="cursor-pointer">
+                                                        <input type="radio" name="modify-event-points-tracking" value="together" class="sr-only peer" checked>
+                                                        <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                            Together
+                                                        </span>
+                                                    </label>
+                                                    <label class="cursor-pointer border-l-2 border-blue-300">
+                                                        <input type="radio" name="modify-event-points-tracking" value="separate" class="sr-only peer">
+                                                        <span class="block px-6 py-2 text-sm font-medium text-blue-900 hover:bg-blue-50 peer-checked:bg-blue-600 peer-checked:text-white transition-colors">
+                                                            Separate
+                                                        </span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <!-- Event Name and Date Fields -->
                                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                                             <div>
@@ -917,13 +993,13 @@
             <div id="page-record" class="page">
                 <div class="max-w-4xl mx-auto">
                     <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            Record Times
+                        <h2 id="record-page-title" class="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            Record Runs
                             <span class="tooltip">
                                 <svg class="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                 </svg>
-                                <span class="tooltip-text">Record run times for each team in your event. Enter the time in seconds (e.g., 8.5 for 8.5 seconds) and check penalty boxes if applicable. Times are automatically sorted fastest to slowest in results.</span>
+                                <span class="tooltip-text">Record run results for each team in your event. For time-based events, enter the time in seconds and check any penalty boxes. For points-based events, enter the score(s).</span>
                             </span>
                         </h2>
 
@@ -1047,9 +1123,21 @@
                                             <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
                                             <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
                                                 <li>Click <a href="#events" onclick="router.navigate('events')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Manage Events"</a> in the navigation menu</li>
+                                                <li>Choose your <span class="font-semibold">Scoring Type</span> at the top of the form:
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li><strong>Time:</strong> teams are ranked by run time (lowest wins). Penalties add seconds to the final time.</li>
+                                                        <li><strong>Points:</strong> teams are ranked by points (highest wins). Penalties are hidden — they're not used in points scoring.</li>
+                                                    </ul>
+                                                </li>
+                                                <li>If you picked <strong>Points</strong>, also choose <span class="font-semibold">Track Headers &amp; Heelers</span>:
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li><strong>Together:</strong> one shared score per run (both header and heeler get the same points)</li>
+                                                        <li><strong>Separate:</strong> the header and heeler each get their own score on every run</li>
+                                                    </ul>
+                                                </li>
                                                 <li>Enter an event name (e.g., "Saturday Morning Roping")</li>
                                                 <li>Optionally set the event date</li>
-                                                <li>Configure penalties if needed (One Leg, Barrier, etc.) - these add seconds to run times</li>
+                                                <li>For Time events, configure penalties if needed (One Leg, Barrier, etc.) — these add seconds to run times. Skipped for Points events.</li>
                                                 <li>In the "Select Ropers" section, check the boxes for headers who will participate
                                                     <ul class="list-disc list-inside ml-4 mt-1 text-xs">
                                                         <li>Use the search box to quickly find ropers</li>
@@ -1063,39 +1151,51 @@
                                                 <li>The app will automatically create all team pairings (every header with every heeler)</li>
                                             </ol>
                                             <div class="mt-3 pt-3 border-t border-gray-200">
-                                                <p class="text-xs text-gray-500"><strong>Tip:</strong> You need at least one header and one heeler to create an event. With 3 headers and 4 heelers, you'll get 12 teams (3×4).</p>
+                                                <p class="text-xs text-gray-500"><strong>Tip:</strong> You need at least one header and one heeler to create an event. With 3 headers and 4 heelers, you'll get 12 teams (3×4). The scoring type and tracking choice can be changed later from "Edit Event Details."</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Step 3: Record Times -->
+                            <!-- Step 3: Record Runs -->
                             <div class="mb-6 bg-gray-50 rounded-lg p-5">
                                 <div class="flex items-start gap-3 mb-3">
                                     <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg font-bold">3</span>
                                     <div class="flex-1">
-                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Record Times</h4>
-                                        <p class="text-sm text-gray-600 mb-3">Enter run times as teams complete their runs during the event.</p>
+                                        <h4 class="text-xl font-bold text-gray-800 mb-2">Record Runs</h4>
+                                        <p class="text-sm text-gray-600 mb-3">Enter results as teams complete their runs during the event. The inputs change based on the event's scoring type.</p>
 
                                         <div class="bg-white p-4 rounded border border-gray-200">
                                             <p class="font-semibold text-sm text-gray-700 mb-2">Step-by-step:</p>
                                             <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
-                                                <li>Click <a href="#record" onclick="router.navigate('record')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Record Times"</a> in the navigation menu</li>
-                                                <li>Select your event from the dropdown</li>
+                                                <li>Click <a href="#record" onclick="router.navigate('record')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"Record Runs"</a> in the navigation menu</li>
+                                                <li>Select your event from the dropdown — the page title updates to "Record Times" or "Record Points" so you know which mode you're in</li>
                                                 <li>You'll see all teams that need to run, displayed as cards</li>
-                                                <li>For each team that completes a run:
+                                                <li><strong>For Time events:</strong>
                                                     <ul class="list-disc list-inside ml-4 mt-1 text-xs">
-                                                        <li>Enter the time in seconds (e.g., "8.5" for 8.5 seconds)</li>
-                                                        <li>Check any penalty boxes if applicable (the penalty seconds will be added automatically)</li>
-                                                        <li>Click "Save Time"</li>
+                                                        <li>Enter the raw time in seconds (e.g., "8.5" for 8.5 seconds)</li>
+                                                        <li>Check any penalty boxes — the penalty seconds will be added automatically</li>
+                                                        <li>Click "Record" to save, or "No Time" (NT) if the team didn't catch</li>
                                                     </ul>
                                                 </li>
-                                                <li>Teams with recorded times will show their final time and penalties</li>
-                                                <li>Continue recording times as teams complete their runs</li>
+                                                <li><strong>For Points events (Together):</strong>
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li>Enter a single <strong>Points</strong> value for the team</li>
+                                                        <li>Click "Record" to save, or "No Score" (NS) to mark complete with no score</li>
+                                                    </ul>
+                                                </li>
+                                                <li><strong>For Points events (Separate):</strong>
+                                                    <ul class="list-disc list-inside ml-4 mt-1 text-xs">
+                                                        <li>Enter <strong>Header Points</strong> and <strong>Heeler Points</strong> separately for the run</li>
+                                                        <li>Click "Record" to save, or "No Score" (NS) to mark complete with no score</li>
+                                                    </ul>
+                                                </li>
+                                                <li>Recorded runs show their result inline and can be edited or marked for rerun</li>
+                                                <li>Continue recording until every team has run</li>
                                             </ol>
                                             <div class="mt-3 pt-3 border-t border-gray-200">
-                                                <p class="text-xs text-gray-500"><strong>Note:</strong> You can edit times later by entering a new time and clicking "Save Time" again. The latest time always overwrites the previous one.</p>
+                                                <p class="text-xs text-gray-500"><strong>Note:</strong> You can edit a run later by clicking "Edit" on a completed card. The latest entry always overwrites the previous one. Click "Rerun" to clear the result and have the team go again.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1115,19 +1215,17 @@
                                             <ol class="list-decimal list-inside space-y-2 text-sm text-gray-600 ml-2">
                                                 <li>Click <a href="#results" onclick="router.navigate('results')" class="font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer">"View Results"</a> in the navigation menu</li>
                                                 <li>Select your event from the dropdown</li>
-                                                <li>View the standings table showing:
+                                                <li>View the Header and Heeler rankings tables. The columns adapt to the event's scoring type:
                                                     <ul class="list-disc list-inside ml-4 mt-1 text-xs">
-                                                        <li>Team names (Header + Heeler)</li>
-                                                        <li>Total time (sum of all runs)</li>
-                                                        <li>Average time per run</li>
-                                                        <li>Number of runs completed</li>
+                                                        <li><strong>Time events:</strong> Catch / NT / Total / Avg / Best — lower times rank higher</li>
+                                                        <li><strong>Points events:</strong> Scored / NS / Total Pts / Avg Pts / Best Pts — higher points rank higher</li>
                                                     </ul>
                                                 </li>
-                                                <li>Click on a team name to see detailed breakdown of each run with times and penalties</li>
-                                                <li>Scroll down to see individual roper statistics showing average performance</li>
+                                                <li>Scroll down to the "Individual Run Details" section to see each roper's per-run results and their partner</li>
+                                                <li>Click <span class="font-semibold">"Export Results to CSV"</span> to download a spreadsheet — the file uses points columns automatically for points events</li>
                                             </ol>
                                             <div class="mt-3 pt-3 border-t border-gray-200">
-                                                <p class="text-xs text-gray-500"><strong>Note:</strong> Teams are ranked by total time (lowest is best). Results update in real-time as you record new times.</p>
+                                                <p class="text-xs text-gray-500"><strong>Note:</strong> For Time events, lowest total time wins. For Points events, highest total points wins. Ties are broken by the appropriate average (lower avg time, or higher avg points). Results update as you record new entries.</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1189,24 +1287,27 @@
                                     <h4 class="font-bold text-lg text-gray-800 mb-2">Manage Events</h4>
                                     <p class="text-sm text-gray-600 mb-2">Set up new events and manage existing ones.</p>
                                     <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
-                                        <li><strong>Event Details:</strong> Name and optional date</li>
-                                        <li><strong>Penalties:</strong> Configure time penalties (One Leg, Barrier, etc.)</li>
+                                        <li><strong>Scoring Type:</strong> Choose Time (lowest wins) or Points (highest wins) at the top of the form</li>
+                                        <li><strong>Track Headers &amp; Heelers:</strong> For Points events, pick Together (one shared score) or Separate (own score for each)</li>
+                                        <li><strong>Event Details:</strong> Name, date, and optional Places to Pay</li>
+                                        <li><strong>Penalties:</strong> Configure time penalties (One Leg, Barrier, etc.) — shown only for Time events</li>
                                         <li><strong>Select Ropers:</strong> Choose participating headers and heelers with search, select all, and quick add features</li>
                                         <li><strong>Generate Event:</strong> Creates all team pairings automatically</li>
-                                        <li><strong>Manage Existing:</strong> Edit or mark events as completed</li>
+                                        <li><strong>Manage Existing:</strong> Edit (including scoring type) or mark events as completed</li>
                                     </ul>
                                 </div>
 
-                                <!-- Record Times -->
+                                <!-- Record Runs -->
                                 <div class="border border-gray-200 rounded-lg p-4">
-                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Record Times</h4>
-                                    <p class="text-sm text-gray-600 mb-2">Enter run times during the event.</p>
+                                    <h4 class="font-bold text-lg text-gray-800 mb-2">Record Runs</h4>
+                                    <p class="text-sm text-gray-600 mb-2">Enter results during the event. The card UI adapts to the event's scoring type.</p>
                                     <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
-                                        <li><strong>Select Event:</strong> Choose which event you're recording for</li>
+                                        <li><strong>Select Event:</strong> Choose which event you're recording for — the page title shows "Record Times" or "Record Points"</li>
                                         <li><strong>Team Cards:</strong> Each team is displayed as a card showing the header and heeler</li>
-                                        <li><strong>Enter Time:</strong> Input time in seconds (decimals allowed)</li>
-                                        <li><strong>Penalties:</strong> Check boxes for any penalties incurred</li>
-                                        <li><strong>Save:</strong> Click "Save Time" to record (can be updated later)</li>
+                                        <li><strong>Time events:</strong> Enter raw time in seconds and check any penalty boxes; click Record or No Time</li>
+                                        <li><strong>Points (Together):</strong> Enter a single Points value for the team; click Record or No Score</li>
+                                        <li><strong>Points (Separate):</strong> Enter Header Points and Heeler Points individually; click Record or No Score</li>
+                                        <li><strong>Edit / Rerun:</strong> Update a saved result, or clear it and have the team go again</li>
                                     </ul>
                                 </div>
 
@@ -1215,10 +1316,10 @@
                                     <h4 class="font-bold text-lg text-gray-800 mb-2">View Results</h4>
                                     <p class="text-sm text-gray-600 mb-2">See standings and statistics.</p>
                                     <ul class="list-disc list-inside space-y-1 text-sm text-gray-600 ml-2">
-                                        <li><strong>Standings Table:</strong> Teams ranked by total time (lowest to highest)</li>
-                                        <li><strong>Team Details:</strong> Click team names to see run-by-run breakdown</li>
-                                        <li><strong>Individual Stats:</strong> View average performance for each roper</li>
-                                        <li><strong>Real-time Updates:</strong> Results refresh as new times are recorded</li>
+                                        <li><strong>Header &amp; Heeler Rankings:</strong> Two ranked tables. Time events show Catch / NT / Total / Avg / Best (lowest time wins). Points events show Scored / NS / Total Pts / Avg Pts / Best Pts (highest points wins).</li>
+                                        <li><strong>Individual Run Details:</strong> Each roper's per-run results with their partner</li>
+                                        <li><strong>Export to CSV:</strong> Download a spreadsheet — columns match the event's scoring type</li>
+                                        <li><strong>Real-time Updates:</strong> Results refresh as new entries are recorded</li>
                                     </ul>
                                 </div>
                             </div>
@@ -1235,6 +1336,18 @@
                             </button>
                             <div id="faqs-content" class="hidden p-5 border-t border-gray-300">
                             <div class="space-y-3">
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">What's the difference between Time and Points scoring?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        <strong>Time:</strong> teams enter a raw time in seconds, penalties add seconds, and the lowest total wins. <strong>Points:</strong> teams enter a points value and the highest total wins — penalties are not used. For Points events you also choose <em>Together</em> (one shared score per run, applied to both header and heeler) or <em>Separate</em> (header and heeler each get their own score). You can change the scoring type later from "Edit Event Details."
+                                    </p>
+                                </div>
+                                <div class="bg-gray-50 p-3 rounded">
+                                    <h4 class="font-semibold text-gray-800 mb-1">What does "NS" / "No Score" mean?</h4>
+                                    <p class="text-sm text-gray-600">
+                                        "No Score" is the Points-event equivalent of "No Time" (NT). It marks the run as complete with no score recorded — useful when a team participated but the run shouldn't count toward their total or average.
+                                    </p>
+                                </div>
                                 <div class="bg-gray-50 p-3 rounded">
                                     <h4 class="font-semibold text-gray-800 mb-1">Can I edit an event after creating it?</h4>
                                     <p class="text-sm text-gray-600">
@@ -1356,6 +1469,7 @@
                     <span id="storage-info" class="text-gray-300 text-xs sm:text-sm break-all">Storage: Loading...</span>
                 </p>
                 <p class="text-xs text-gray-400 mt-2">PWA Version 1.0</p>
+                <p class="text-xs text-gray-400 mt-1">&copy; Anna Cottrill</p>
             </div>
         </footer>
 
@@ -1534,14 +1648,14 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/db.js?v=20260202"></script>
-    <script src="js/router.js?v=20260202"></script>
-    <script src="js/app.js?v=20260202"></script>
-    <script src="js/pages/home.js?v=20260202"></script>
-    <script src="js/pages/ropers.js?v=20260202"></script>
-    <script src="js/pages/events.js?v=20260202"></script>
-    <script src="js/pages/record.js?v=20260202"></script>
-    <script src="js/pages/results.js?v=20260202"></script>
+    <script src="js/db.js?v=20260526-5"></script>
+    <script src="js/router.js?v=20260526-5"></script>
+    <script src="js/app.js?v=20260526-5"></script>
+    <script src="js/pages/home.js?v=20260526-5"></script>
+    <script src="js/pages/ropers.js?v=20260526-5"></script>
+    <script src="js/pages/events.js?v=20260526-5"></script>
+    <script src="js/pages/record.js?v=20260526-5"></script>
+    <script src="js/pages/results.js?v=20260526-5"></script>
 
     <!-- Sidebar Navigation Toggle -->
     <script>
